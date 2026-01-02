@@ -18,19 +18,19 @@
 - (3) Provide natural language explanations for portfolio allocation rationale, making it easier for users to understand and make informed decisions
 ## Structure
 bookkeeping/
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py          # 初始化
-│   │   ├── models/              # 資料庫模型
-│   │   │   └── __init__.py
-│   │   ├── routes/              # API 
-│   │   │   └── __init__.py
-│   │   └── services/            # 業務邏輯
-│   │       └── __init__.py
-│   ├── database/                # 資料庫
-│   ├── tests/                   # 測試
-│   ├── requirements.txt         # Python套件
-│   ├── .env.example            # 環境變數範例
-│   └── README.md               # 說明文件
-├── frontend/                    # 前端
-└── research/                    # 研究筆記
+-├── backend/
+-│   ├── app/
+-│   │   ├── __init__.py          # 初始化
+-│   │   ├── models/              # 資料庫模型
+-│   │   │   └── __init__.py
+-│   │   ├── routes/              # API 
+-│   │   │   └── __init__.py
+-│   │   └── services/            # 業務邏輯
+-│   │       └── __init__.py
+-│   ├── database/                # 資料庫
+-│   ├── tests/                   # 測試
+-│   ├── requirements.txt         # Python套件
+-│   ├── .env.example            # 環境變數範例
+-│   └── README.md               # 說明文件
+-├── frontend/                    # 前端
+-└── research/                    # 研究筆記
