@@ -1,5 +1,4 @@
-# Financial Management Branch
-# (Personal Financial Management Platform)
+# Financial Management Branch (Personal Financial Management Platform)
 
 ## Features
 
