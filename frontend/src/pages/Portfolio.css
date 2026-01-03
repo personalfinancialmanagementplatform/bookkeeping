@@ -1,0 +1,583 @@
+.portfolio-page {
+    padding: 20px;
+  }
+  
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  
+  .page-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+  
+  /* 上方統計區 */
+  .top-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  
+  @media (max-width: 900px) {
+    .top-section {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  /* 本月統計卡片 */
+  .monthly-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: white;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #ddd;
+  }
+  
+  .stat-card.investment { border-left-color: #e74c3c; }
+  .stat-card.sell { border-left-color: #27ae60; }
+  .stat-card.dividend { border-left-color: #f39c12; }
+  
+  .stat-icon {
+    font-size: 1.8rem;
+  }
+  
+  .stat-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .stat-label {
+    font-size: 0.85rem;
+    color: #666;
+  }
+  
+  .stat-value {
+    font-size: 1.3rem;
+    font-weight: bold;
+  }
+  
+  .stat-value.positive { color: #27ae60; }
+  .stat-value.negative { color: #e74c3c; }
+  
+  /* 總覽卡片 */
+  .overview-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .overview-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  
+  .overview-card .label {
+    display: block;
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 8px;
+  }
+  
+  .overview-card .value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+  }
+  
+  .overview-card .value small {
+    font-size: 0.9rem;
+    font-weight: normal;
+  }
+  
+  .overview-card.profit .value { color: #27ae60; }
+  .overview-card.loss .value { color: #e74c3c; }
+  
+  /* 中間區塊：圓餅圖 + 最近交易 */
+  .middle-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  
+  @media (max-width: 900px) {
+    .middle-section {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .chart-card, .recent-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  
+  .chart-card h3, .recent-card h3 {
+    margin: 0 0 16px 0;
+    font-size: 1rem;
+    color: #2c3e50;
+  }
+  
+  .empty-chart {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 150px;
+    color: #999;
+  }
+  
+  /* 最近交易列表 */
+  .recent-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .recent-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .recent-item:last-child {
+    border-bottom: none;
+  }
+  
+  .item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .type-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  .type-badge.buy { background: #FFE5E5; color: #e74c3c; }
+  .type-badge.sell { background: #E5F9E7; color: #27ae60; }
+  .type-badge.dividend { background: #FFF5E5; color: #f39c12; }
+  
+  .stock-name {
+    font-size: 0.9rem;
+    color: #2c3e50;
+  }
+  
+  .item-right {
+    text-align: right;
+  }
+  
+  .item-right .amount {
+    display: block;
+    font-weight: bold;
+    color: #2c3e50;
+  }
+  
+  .recent-item.buy .item-right .amount { color: #e74c3c; }
+  .recent-item.sell .item-right .amount { color: #27ae60; }
+  .recent-item.dividend .item-right .amount { color: #f39c12; }
+  
+  .item-right .date {
+    font-size: 0.8rem;
+    color: #999;
+  }
+  
+  /* 頁籤 */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 8px;
+  }
+  
+  .tabs button {
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    color: #666;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    font-size: 0.95rem;
+  }
+  
+  .tabs button:hover {
+    background: #f5f5f5;
+  }
+  
+  .tabs button.active {
+    background: #3498db;
+    color: white;
+  }
+  
+  /* 篩選器 */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  
+  .filter-bar span {
+    color: #666;
+    font-size: 0.9rem;
+  }
+  
+  .filter-bar button {
+    padding: 6px 14px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #666;
+    transition: all 0.2s;
+  }
+  
+  .filter-bar button:hover {
+    border-color: #3498db;
+    color: #3498db;
+  }
+  
+  .filter-bar button.active {
+    background: #3498db;
+    border-color: #3498db;
+    color: white;
+  }
+  
+  /* 類別分組 */
+  .holdings-by-type {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .type-group {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  
+  .type-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    margin: 0;
+    background: #f8f9fa;
+    font-size: 1rem;
+    color: #2c3e50;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .type-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  
+  .type-count {
+    font-size: 0.85rem;
+    color: #999;
+    font-weight: normal;
+    margin-left: auto;
+  }
+  
+  /* 持倉表格 */
+  .holdings-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .holdings-table th,
+  .holdings-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .holdings-table th {
+    font-weight: 500;
+    color: #666;
+    font-size: 0.85rem;
+    background: #fafafa;
+  }
+  
+  .holdings-table td small {
+    color: #999;
+  }
+  
+  .holdings-table .profit { color: #27ae60; }
+  .holdings-table .loss { color: #e74c3c; }
+  
+  .holdings-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  /* 關注清單 */
+  .section-header {
+    margin-bottom: 16px;
+  }
+  
+  .watchlist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  
+  .watchlist-card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  
+  .watchlist-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  
+  .watchlist-card strong {
+    font-size: 1.1rem;
+    color: #2c3e50;
+  }
+  
+  .watchlist-card .name {
+    display: block;
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 2px;
+  }
+  
+  .watchlist-card .card-body {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  
+  .watchlist-card .price {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #2c3e50;
+  }
+  
+  .watchlist-card .change {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  
+  .watchlist-card .change.up { color: #e74c3c; }
+  .watchlist-card .change.down { color: #27ae60; }
+  
+  .btn-remove {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px;
+  }
+  
+  .btn-remove:hover {
+    color: #e74c3c;
+  }
+  
+  /* 按鈕 */
+  .btn-primary {
+    padding: 10px 20px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  
+  .btn-primary:hover {
+    background: #2980b9;
+  }
+  
+  .btn-secondary {
+    padding: 10px 20px;
+    background: #ecf0f1;
+    color: #2c3e50;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  
+  .btn-secondary:hover {
+    background: #d5dbdb;
+  }
+  
+  .btn-cancel {
+    padding: 10px 20px;
+    background: #eee;
+    color: #666;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%;
+    max-width: 450px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .modal h3 {
+    margin: 0 0 20px 0;
+    font-size: 1.2rem;
+  }
+  
+  /* 表單 */
+  .form-group {
+    margin-bottom: 16px;
+    position: relative;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    color: #666;
+  }
+  
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+  
+  .form-group input:focus,
+  .form-group select:focus {
+    border-color: #3498db;
+    outline: none;
+  }
+  
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  
+  /* 搜尋結果 */
+  .search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    list-style: none;
+    margin: 4px 0 0 0;
+    padding: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10;
+  }
+  
+  .search-results li {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .search-results li:hover {
+    background: #f5f5f5;
+  }
+  
+  .search-results li:last-child {
+    border-bottom: none;
+  }
+  
+  .search-results .badge {
+    margin-left: auto;
+    padding: 3px 8px;
+    background: #eee;
+    border-radius: 10px;
+    font-size: 0.75rem;
+  }
+  
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 12px;
+    color: #666;
+  }
+  
+  .empty-state p {
+    margin-bottom: 16px;
+  }
+  
+  /* Loading */
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: #666;
+  }

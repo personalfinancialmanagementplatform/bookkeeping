@@ -3,6 +3,7 @@ import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Budgets from './pages/Budgets';
 import Goals from './pages/Goals';
+import Portfolio from './pages/Portfolio';
 import './App.css';
 
 function App() {
@@ -27,12 +28,17 @@ function App() {
             </li>
             <li>
               <NavLink to="/budgets" className={({ isActive }) => isActive ? 'active' : ''}>
-                📈 預算管理
+                💵 預算管理
               </NavLink>
             </li>
             <li>
               <NavLink to="/goals" className={({ isActive }) => isActive ? 'active' : ''}>
                 🎯 財務目標
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/portfolio" className={({ isActive }) => isActive ? 'active' : ''}>
+                📈 投資組合
               </NavLink>
             </li>
           </ul>
@@ -45,6 +51,7 @@ function App() {
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/budgets" element={<Budgets />} />
             <Route path="/goals" element={<Goals />} />
+            <Route path="/portfolio" element={<Portfolio />} />
           </Routes>
         </main>
       </div>

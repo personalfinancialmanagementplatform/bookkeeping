@@ -1260,7 +1260,13 @@ def create_app():
     @app.route('/health')
     def health():
         return jsonify({'status': 'ok', 'database': 'connected'})
+    # 載入投資組合路由
+    from app.routes.portfolio_routes import portfolio_bp, init_portfolio_routes
+    init_portfolio_routes(db)
+    app.register_blueprint(portfolio_bp)
     
+    return app
+
     return app
 
 # 建立 app 實例
