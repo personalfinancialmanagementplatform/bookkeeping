@@ -1010,9 +1010,10 @@ def create_app():
         """
         取得財務建議
         功能：根據使用者可支配金額與消費習慣生成可行策略，
-              並提供動態調整建議
+              並提供動態調整建議（落後/如期/超前）
         """
         suggestions = []
+        adjustment_plans = []
         
         # 1. 分析本月支出
         today = datetime.now()
@@ -1037,8 +1038,28 @@ def create_app():
         days_passed = today.day
         days_in_month = 30
         days_remaining = days_in_month - days_passed
+        daily_available = disposable / days_remaining if days_remaining > 0 else 0
+        weekly_available = daily_available * 7
         
-        # 2. 分析預算狀態
+        # 2. 分析各類別支出（找出最高支出類別）
+        category_result = db.session.execute(text('''
+            SELECT c.name, COALESCE(SUM(t.amount), 0) as total
+            FROM transactions t
+            JOIN categories c ON t.category_id = c.id
+            WHERE t.type = 'expense' AND t.date >= :start
+            GROUP BY c.id, c.name
+            ORDER BY total DESC
+            LIMIT 3
+        '''), {'start': start_of_month})
+        
+        top_categories = []
+        for row in category_result:
+            top_categories.append({
+                'name': row[0],
+                'amount': float(row[1])
+            })
+        
+        # 3. 分析預算狀態
         budget_result = db.session.execute(text('''
             SELECT b.name, b.amount, c.name as category_name,
                    COALESCE((
@@ -1056,59 +1077,153 @@ def create_app():
             budget_amount = float(row[1])
             spent = float(row[3])
             usage = (spent / budget_amount * 100) if budget_amount > 0 else 0
+            remaining_budget = budget_amount - spent
             
             if usage > 100:
+                over_amount = spent - budget_amount
                 suggestions.append({
                     'type': 'warning',
                     'category': '預算超支',
-                    'message': f'{row[2]} 的預算已超支 {usage-100:.1f}%，建議減少此類支出'
+                    'message': f'「{row[2]}」預算已超支 ${over_amount:.0f}，建議本月減少此類支出',
+                    'action': f'建議每週減少 ${over_amount/4:.0f} 的{row[2]}支出'
                 })
             elif usage > 80:
                 suggestions.append({
                     'type': 'caution',
                     'category': '預算警告',
-                    'message': f'{row[2]} 的預算已使用 {usage:.1f}%，請注意控制支出'
+                    'message': f'「{row[2]}」預算已使用 {usage:.0f}%，剩餘 ${remaining_budget:.0f}',
+                    'action': f'建議每日{row[2]}支出控制在 ${remaining_budget/days_remaining:.0f} 以內'
                 })
         
-        # 3. 分析儲蓄目標
+        # 4. 分析儲蓄目標（含落後/如期/超前判斷）
         goal_result = db.session.execute(text('''
-            SELECT name, target_amount, current_amount, deadline
+            SELECT id, name, target_amount, current_amount, deadline, created_at
             FROM financial_goals
             WHERE status = 'in_progress'
         '''))
         
         for row in goal_result:
-            target = float(row[1])
-            current = float(row[2])
+            goal_id = row[0]
+            goal_name = row[1]
+            target = float(row[2])
+            current = float(row[3])
             remaining = target - current
+            progress = (current / target * 100) if target > 0 else 0
             
-            if row[3]:  # has deadline
-                deadline = row[3]
+            if row[4]:  # has deadline
+                deadline = row[4]
                 if isinstance(deadline, str):
                     deadline = datetime.strptime(deadline, '%Y-%m-%d').date()
-                days_to_deadline = (deadline - today.date()).days
                 
-                if days_to_deadline > 0:
-                    daily_needed = remaining / days_to_deadline
-                    weekly_needed = daily_needed * 7
+                created_at = row[5]
+                if created_at:
+                    if isinstance(created_at, str):
+                        created_at = datetime.strptime(created_at[:10], '%Y-%m-%d').date()
+                    elif hasattr(created_at, 'date'):
+                        created_at = created_at.date()
+                else:
+                    created_at = today.date() - timedelta(days=30)
+                
+                days_to_deadline = (deadline - today.date()).days
+                total_days = (deadline - created_at).days
+                days_passed_goal = (today.date() - created_at).days
+                
+                # 計算預期進度
+                expected_progress = (days_passed_goal / total_days * 100) if total_days > 0 else 0
+                
+                # 計算每日/每週/每月需存金額
+                daily_needed = remaining / days_to_deadline if days_to_deadline > 0 else 0
+                weekly_needed = daily_needed * 7
+                monthly_needed = daily_needed * 30
+                
+                # 判斷進度狀態並生成建議
+                if progress > 0 and expected_progress > 0:
+                    ratio = progress / expected_progress
                     
-                    if disposable > 0 and days_remaining > 0:
-                        daily_available = disposable / days_remaining
+                    if ratio < 0.8:
+                        # === 落後 ===
+                        shortfall = (expected_progress - progress) / 100 * target
+                        extra_weekly = shortfall / (days_to_deadline / 7) if days_to_deadline > 7 else shortfall
                         
-                        if daily_available >= daily_needed:
-                            suggestions.append({
-                                'type': 'success',
-                                'category': '儲蓄建議',
-                                'message': f'目標「{row[0]}」進度良好！建議每日存 ${daily_needed:.0f}，您目前每日可存 ${daily_available:.0f}'
-                            })
+                        # 建議延長期限
+                        if daily_needed > daily_available and daily_available > 0:
+                            new_days_needed = int(remaining / daily_available)
+                            new_deadline = today.date() + timedelta(days=new_days_needed)
+                            new_deadline_str = new_deadline.strftime('%Y-%m-%d')
                         else:
-                            suggestions.append({
-                                'type': 'info',
-                                'category': '儲蓄調整',
-                                'message': f'目標「{row[0]}」需要每日存 ${daily_needed:.0f}，建議提高每週儲蓄額或調整目標日期'
-                            })
+                            new_deadline_str = None
+                        
+                        suggestions.append({
+                            'type': 'warning',
+                            'category': '目標進度落後',
+                            'message': f'「{goal_name}」進度落後！目前 {progress:.0f}%，預期應達 {expected_progress:.0f}%',
+                            'action': f'建議每週增加儲蓄 ${extra_weekly:.0f}'
+                        })
+                        
+                        adjustment_plans.append({
+                            'goal_id': goal_id,
+                            'goal_name': goal_name,
+                            'status': 'behind',
+                            'current_progress': round(progress, 1),
+                            'expected_progress': round(expected_progress, 1),
+                            'adjusted_weekly_saving': round(weekly_needed + extra_weekly, 0),
+                            'adjusted_monthly_saving': round((weekly_needed + extra_weekly) * 4, 0),
+                            'reduce_category': top_categories[0]['name'] if top_categories else None,
+                            'reduce_amount': round(extra_weekly, 0),
+                            'new_deadline': new_deadline_str,
+                            'message': f'需加速儲蓄或延長期限至 {new_deadline_str}' if new_deadline_str else '需加速儲蓄'
+                        })
+                        
+                    elif ratio > 1.2:
+                        # === 超前 ===
+                        surplus = (progress - expected_progress) / 100 * target
+                        days_ahead = int((progress - expected_progress) / 100 * total_days)
+                        early_finish = deadline - timedelta(days=days_ahead)
+                        
+                        suggestions.append({
+                            'type': 'success',
+                            'category': '目標進度超前',
+                            'message': f'🎉「{goal_name}」進度超前！目前 {progress:.0f}%，預期 {expected_progress:.0f}%',
+                            'action': f'可提前於 {early_finish.strftime("%Y-%m-%d")} 完成，或將多餘 ${surplus:.0f} 分配到其他目標'
+                        })
+                        
+                        adjustment_plans.append({
+                            'goal_id': goal_id,
+                            'goal_name': goal_name,
+                            'status': 'ahead',
+                            'current_progress': round(progress, 1),
+                            'expected_progress': round(expected_progress, 1),
+                            'early_finish_date': early_finish.strftime('%Y-%m-%d'),
+                            'surplus_amount': round(surplus, 0),
+                            'options': [
+                                f'提前完成：預計 {early_finish.strftime("%Y-%m-%d")}',
+                                f'分配多餘儲蓄 ${surplus:.0f} 到其他目標',
+                                f'本月可增加娛樂預算 ${surplus/4:.0f} 作為獎勵'
+                            ],
+                            'message': '表現優異！可選擇提前完成或獎勵自己'
+                        })
+                        
+                    else:
+                        # === 如期 ===
+                        suggestions.append({
+                            'type': 'info',
+                            'category': '目標進度正常',
+                            'message': f'「{goal_name}」進度正常，目前 {progress:.0f}%',
+                            'action': f'繼續保持每週存 ${weekly_needed:.0f} 即可達成'
+                        })
+                        
+                        adjustment_plans.append({
+                            'goal_id': goal_id,
+                            'goal_name': goal_name,
+                            'status': 'on_track',
+                            'current_progress': round(progress, 1),
+                            'expected_progress': round(expected_progress, 1),
+                            'weekly_saving': round(weekly_needed, 0),
+                            'monthly_saving': round(monthly_needed, 0),
+                            'message': '保持現有儲蓄策略即可'
+                        })
         
-        # 4. 一般建議
+        # 5. 儲蓄率建議
         if monthly_income > 0:
             savings_rate = (disposable / monthly_income * 100) if disposable > 0 else 0
             
@@ -1116,13 +1231,15 @@ def create_app():
                 suggestions.append({
                     'type': 'warning',
                     'category': '儲蓄率偏低',
-                    'message': f'本月儲蓄率僅 {savings_rate:.1f}%，建議目標至少 20%'
+                    'message': f'本月儲蓄率僅 {savings_rate:.1f}%',
+                    'action': '建議目標至少 20%，可從減少最高支出類別開始'
                 })
             elif savings_rate >= 30:
                 suggestions.append({
                     'type': 'success',
                     'category': '儲蓄表現優異',
-                    'message': f'本月儲蓄率達 {savings_rate:.1f}%，表現優異！'
+                    'message': f'本月儲蓄率達 {savings_rate:.1f}%，表現優異！',
+                    'action': '可考慮增加投資或提高儲蓄目標'
                 })
         
         return jsonify({
@@ -1130,9 +1247,13 @@ def create_app():
                 'monthly_income': monthly_income,
                 'monthly_expense': monthly_expense,
                 'disposable': disposable,
-                'days_remaining': days_remaining
+                'daily_available': round(daily_available, 0),
+                'weekly_available': round(weekly_available, 0),
+                'days_remaining': days_remaining,
+                'top_expense_categories': top_categories
             },
-            'suggestions': suggestions
+            'suggestions': suggestions,
+            'adjustment_plans': adjustment_plans
         })
     
     # 健康檢查
