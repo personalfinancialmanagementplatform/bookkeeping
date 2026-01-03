@@ -326,7 +326,7 @@
   
   .holdings-table th,
   .holdings-table td {
-    padding: 14px 16px;
+    padding: 14px 12px;
     text-align: left;
     border-bottom: 1px solid #eee;
   }
@@ -349,7 +349,22 @@
     border-bottom: none;
   }
   
-  /* 賣出按鈕 */
+  /* 配息欄位 */
+  .dividend-cell .dividend-amount {
+    color: #f39c12;
+    font-weight: 500;
+  }
+  
+  .dividend-cell .no-dividend {
+    color: #ccc;
+  }
+  
+  /* 操作按鈕 */
+  .action-cell {
+    display: flex;
+    gap: 6px;
+  }
+  
   .btn-sell {
     padding: 6px 12px;
     background: #e74c3c;
@@ -362,6 +377,53 @@
   
   .btn-sell:hover {
     background: #c0392b;
+  }
+  
+  .btn-dividend {
+    padding: 6px 12px;
+    background: #f39c12;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+  
+  .btn-dividend:hover {
+    background: #d68910;
+  }
+  
+  /* 配息記錄表格 */
+  .dividends-section .card {
+    overflow-x: auto;
+  }
+  
+  .dividends-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .dividends-table th,
+  .dividends-table td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .dividends-table th {
+    font-weight: 500;
+    color: #666;
+    font-size: 0.85rem;
+    background: #fafafa;
+  }
+  
+  .dividends-table .dividend-amount {
+    color: #f39c12;
+    font-weight: bold;
+  }
+  
+  .dividends-table tr:last-child td {
+    border-bottom: none;
   }
   
   /* 關注清單 */
@@ -471,6 +533,19 @@
     cursor: pointer;
   }
   
+  .btn-sell-confirm {
+    padding: 10px 20px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  
+  .btn-sell-confirm:hover {
+    background: #c0392b;
+  }
+  
   /* Modal */
   .modal-overlay {
     position: fixed;
@@ -496,9 +571,34 @@
   }
   
   .modal h3 {
-    margin: 0 0 20px 0;
+    margin: 0 0 16px 0;
     font-size: 1.2rem;
   }
+  
+  .modal-info {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+  }
+  
+  /* 賣出/配息預覽 */
+  .sell-preview, .dividend-preview {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  
+  .sell-preview p, .dividend-preview p {
+    margin: 4px 0;
+    font-size: 0.95rem;
+  }
+  
+  .sell-preview .profit { color: #27ae60; font-weight: bold; }
+  .sell-preview .loss { color: #e74c3c; font-weight: bold; }
   
   /* 表單 */
   .form-group {
