@@ -30,9 +30,10 @@ export const transactionsAPI = {
 
 // 預算 API
 export const budgetsAPI = {
-  getAll: () => api.get('/budgets'),
-  create: (data) => api.post('/budgets', data),
-};
+    getAll: () => api.get('/budgets'),
+    create: (data) => api.post('/budgets', data),
+    delete: (id) => api.delete(`/budgets/${id}`),
+  };
 
 // 目標 API
 export const goalsAPI = {

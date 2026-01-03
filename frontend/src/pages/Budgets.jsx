@@ -9,8 +9,9 @@ function Budgets() {
     name: '',
     amount: '',
     category_id: '',
-    period: 'monthly',
-    start_date: new Date().toISOString().split('T')[0]
+    period: 'this_month',
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: ''
   });
 
   useEffect(() => {
@@ -19,7 +20,6 @@ function Budgets() {
 
   const loadData = async () => {
     try {
-      // 分開呼叫，避免其中一個失敗影響另一個
       let budgetsData = [];
       let categoriesData = [];
       
@@ -33,42 +33,52 @@ function Budgets() {
       try {
         const catRes = await categoriesAPI.getAll();
         categoriesData = catRes.data || [];
-        console.log('分類資料:', categoriesData);
       } catch (e) {
         console.error('載入分類失敗:', e);
       }
       
       setBudgets(budgetsData);
-      
-      // 篩選支出類別
       const expenseCategories = categoriesData.filter(c => c.type === 'expense');
-      console.log('支出分類:', expenseCategories);
       setCategories(expenseCategories);
       
     } catch (error) {
       console.error('載入失敗:', error);
     }
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await budgetsAPI.create({
         ...form,
         amount: parseFloat(form.amount),
-        category_id: parseInt(form.category_id)
+        category_id: parseInt(form.category_id),
+        end_date: form.end_date || null
       });
       setShowModal(false);
       setForm({
         name: '',
         amount: '',
         category_id: '',
-        period: 'monthly',
-        start_date: new Date().toISOString().split('T')[0]
+        period: 'this_month',
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: ''
       });
       loadData();
     } catch (error) {
       console.error('新增失敗:', error);
       alert('新增失敗，請檢查所有欄位是否填寫正確');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('確定要刪除這個預算嗎？')) {
+      try {
+        await budgetsAPI.delete(id);
+        loadData();
+      } catch (error) {
+        console.error('刪除失敗:', error);
+      }
     }
   };
 
@@ -92,6 +102,15 @@ function Budgets() {
     return labels[period] || period;
   };
 
+  const getDaysRemainingLabel = (days) => {
+    if (days === null || days === undefined) return null;
+    if (days < 0) return <span style={{ color: '#e74c3c' }}>已過期</span>;
+    if (days === 0) return <span style={{ color: '#e74c3c' }}>今日到期</span>;
+    if (days <= 3) return <span style={{ color: '#f39c12' }}>剩餘 {days} 天</span>;
+    if (days <= 7) return <span style={{ color: '#3498db' }}>剩餘 {days} 天</span>;
+    return <span style={{ color: '#666' }}>剩餘 {days} 天</span>;
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
@@ -113,8 +132,9 @@ function Budgets() {
               </span>
             </div>
             
-            <div style={{ marginBottom: '5px', color: '#666', fontSize: '0.85rem' }}>
-              週期：{getPeriodLabel(budget.period)}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', color: '#666', fontSize: '0.85rem' }}>
+              <span>週期：{getPeriodLabel(budget.period)}</span>
+              {getDaysRemainingLabel(budget.days_remaining)}
             </div>
             
             <div style={{ marginBottom: '10px' }}>
@@ -136,6 +156,14 @@ function Budgets() {
             <div style={{ color: budget.remaining >= 0 ? '#27ae60' : '#e74c3c', fontWeight: 'bold' }}>
               剩餘: ${budget.remaining?.toLocaleString()}
             </div>
+
+            <button 
+              className="btn btn-danger btn-small"
+              style={{ marginTop: '15px', width: '100%' }}
+              onClick={() => handleDelete(budget.id)}
+            >
+              刪除預算
+            </button>
           </div>
         ))}
       </div>
@@ -211,6 +239,14 @@ function Budgets() {
                   type="date"
                   value={form.start_date}
                   onChange={e => setForm({ ...form, start_date: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>結束日期（可選，用於計算剩餘天數）</label>
+                <input
+                  type="date"
+                  value={form.end_date}
+                  onChange={e => setForm({ ...form, end_date: e.target.value })}
                 />
               </div>
               <div className="modal-actions">

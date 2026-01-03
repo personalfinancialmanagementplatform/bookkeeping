@@ -16,7 +16,32 @@ Personal Financial Management Platform
    - 計算各目標達成進度，提供清楚的進度報告
    - 根據使用者可支配金額與消費習慣生成可行策略
 """
+from flask import Flask
+from flask_cors import CORS
 
+app = Flask(__name__)
+
+# 完整的 CORS 設定
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:5173"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    }
+})
+
+# 手動處理 OPTIONS 請求
+@app.before_request
+def handle_preflight():
+    from flask import request
+    if request.method == "OPTIONS":
+        from flask import make_response
+        response = make_response()
+        response.headers.add("Access-Control-Allow-Origin", "http://localhost:5173")
+        response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        return response
+    
 import os
 import sys
 from datetime import datetime, timedelta
@@ -61,49 +86,74 @@ def get_database_url():
 # 關鍵字分類對照表 (參考 Firefly III Rules Engine)
 # ========================================
 KEYWORD_CATEGORY_MAP = {
-    # 食物飲料
+    # 食物飲料 (1)
     '早餐': 1, '午餐': 1, '晚餐': 1, '飲料': 1, '咖啡': 1, '星巴克': 1,
     '麥當勞': 1, '肯德基': 1, '便當': 1, '小吃': 1, '餐廳': 1, '外送': 1,
     'ubereats': 1, 'foodpanda': 1, '超市': 1, '全聯': 1, '7-11': 1,
     
-    # 交通
+    # 交通 (2)
     '捷運': 2, '公車': 2, '計程車': 2, 'uber': 2, '高鐵': 2, '火車': 2,
     '加油': 2, '停車': 2, '機車': 2, '汽車': 2, 'youbike': 2,
     
-    # 購物
+    # 購物 (3)
     '衣服': 3, '鞋子': 3, '包包': 3, '網購': 3, 'pchome': 3, 'momo': 3,
     '蝦皮': 3, '百貨': 3, 'uniqlo': 3, 'zara': 3,
     
-    # 娛樂
+    # 娛樂 (4)
     '電影': 4, '遊戲': 4, 'netflix': 4, 'spotify': 4, '演唱會': 4,
     'ktv': 4, '書': 4, '漫畫': 4,
     
-    # 帳單
+    # 帳單 (5)
     '電費': 5, '水費': 5, '瓦斯': 5, '網路': 5, '手機': 5, '電話費': 5,
     '房租': 5, '管理費': 5,
     
-    # 醫療
+    # 醫療 (6)
     '看診': 6, '醫院': 6, '診所': 6, '藥': 6, '牙醫': 6, '健檢': 6,
     
-    # 教育
+    # 教育 (7)
     '學費': 7, '課程': 7, '補習': 7, '書籍': 7, '文具': 7,
+    
+    # 生活必需 (37) - 新增
+    '衛生紙': 37, '洗衣精': 37, '沐浴乳': 37, '洗髮精': 37, '牙膏': 37,
+    '日用品': 37, '生活用品': 37, '家用': 37, '清潔': 37, '廚房': 37,
+    
+    # 投資支出 (38) - 新增
+    '股票': 38, '基金': 38, '定存': 38, 'etf': 38, '投資': 38,
+    '證券': 38, '期貨': 38, '外幣': 38,
     
     # 收入關鍵字
     '薪水': 9, '薪資': 9, '工資': 9, '獎金': 9,
     '股利': 10, '利息': 10, '投資收益': 10,
-    '兼職': 11, '接案': 11, '外快': 11,
+    '兼職': 11, '接案': 11, '外快': 11,'家教': 11,
 }
 
-def auto_categorize(description):
+# 金額區間分類（當關鍵字無法判斷時使用）
+AMOUNT_CATEGORY_RULES = [
+    (20, 80, 1),      # 20-80 元 → 食物飲料（飲料、小點心）
+    (80, 200, 1),     # 80-200 元 → 食物飲料（正餐）
+    (15, 50, 2),      # 15-50 元 → 交通（捷運、公車）
+]
+
+def auto_categorize(description, amount=None):
     """
     自動分類功能 (參考 Firefly III Rules Engine)
-    透過關鍵字、歷史數據進行分類
+    分類邏輯優先順序：
+    1. 關鍵字比對
+    2. 金額區間判斷
+    3. 歷史紀錄相似度（TODO: 需要 app context）
     """
     description_lower = description.lower()
     
+    # 1. 關鍵字比對
     for keyword, category_id in KEYWORD_CATEGORY_MAP.items():
         if keyword in description_lower:
             return category_id
+    
+    # 2. 金額區間判斷
+    if amount is not None:
+        for min_amt, max_amt, category_id in AMOUNT_CATEGORY_RULES:
+            if min_amt <= amount <= max_amt:
+                return category_id
     
     return None  # 無法自動分類
 
@@ -120,8 +170,8 @@ def create_app():
     app.config['JSON_AS_ASCII'] = False  # 支援中文顯示
     
     # 啟用 CORS
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
-    
+
+    CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]}})
     # 初始化資料庫
     db.init_app(app)
     
@@ -337,7 +387,7 @@ def create_app():
         # 自動分類功能
         category_id = data.get('category_id')
         if not category_id:
-            category_id = auto_categorize(data['description'])
+            category_id = auto_categorize(data['description'], data.get('amount'))
             if not category_id:
                 # 預設分類：其他支出(8) 或 其他收入(12)
                 category_id = 8 if data['type'] == 'expense' else 12
@@ -443,12 +493,15 @@ def create_app():
     def get_budgets():
         """
         取得所有預算及使用狀態
-        功能：更新各類別支出與預算狀態
+        功能：自動處理過期與達標狀態
         """
         try:
+            today = datetime.now().date()
+            
+            # 查詢所有 active 預算
             result = db.session.execute(text('''
                 SELECT b.id, b.category_id, b.name, b.amount, b.period, 
-                       b.start_date, b.end_date, b.is_active,
+                       b.start_date, b.end_date, b.is_active, b.status,
                        c.name as category_name, c.icon as category_icon,
                        COALESCE((
                            SELECT SUM(t.amount) 
@@ -461,36 +514,97 @@ def create_app():
                 FROM budgets b
                 JOIN categories c ON b.category_id = c.id
                 WHERE b.is_active = true
+                ORDER BY 
+                    CASE WHEN b.end_date IS NULL THEN 1 ELSE 0 END,
+                    b.end_date ASC
             '''))
             
             budgets = []
+            ids_to_delete = []  # 過期未達標，要刪除的
+            ids_to_complete = []  # 達標的
+            
             for row in result:
+                budget_id = row[0]
                 budget_amount = float(row[3]) if row[3] else 0
-                spent = float(row[10]) if row[10] else 0
+                spent = float(row[11]) if row[11] else 0
                 remaining = budget_amount - spent
                 usage_percent = (spent / budget_amount * 100) if budget_amount > 0 else 0
+                end_date = row[6]
+                
+                # 計算剩餘天數
+                days_remaining = None
+                is_expired = False
+                if end_date:
+                    if isinstance(end_date, str):
+                        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+                    days_remaining = (end_date - today).days
+                    is_expired = days_remaining < 0
+                
+                # 判斷狀態
+                is_completed = usage_percent >= 100 or spent >= budget_amount
+                
+                if is_expired and not is_completed:
+                    # 過期未達標 → 加入刪除清單
+                    ids_to_delete.append(budget_id)
+                    continue  # 不加入回傳列表
+                
+                if is_completed:
+                    # 達標 → 標記為 completed
+                    ids_to_complete.append(budget_id)
+                    status = 'completed'
+                elif is_expired:
+                    status = 'expired'
+                elif usage_percent > 80:
+                    status = 'warning'
+                else:
+                    status = 'ok'
                 
                 budgets.append({
-                    'id': row[0],
+                    'id': budget_id,
                     'category_id': row[1],
                     'name': row[2],
                     'amount': budget_amount,
                     'period': row[4],
                     'start_date': str(row[5]) if row[5] else None,
                     'end_date': str(row[6]) if row[6] else None,
-                    'category_name': row[8],
-                    'category_icon': row[9],
+                    'category_name': row[9],
+                    'category_icon': row[10],
                     'spent': spent,
                     'remaining': remaining,
                     'usage_percent': round(usage_percent, 2),
-                    'status': 'over' if remaining < 0 else 'warning' if usage_percent > 80 else 'ok'
+                    'days_remaining': days_remaining,
+                    'status': status
                 })
+            
+            # 刪除過期未達標的預算
+            if ids_to_delete:
+                db.session.execute(text(
+                    'DELETE FROM budgets WHERE id IN :ids'
+                ), {'ids': tuple(ids_to_delete)})
+                db.session.commit()
+            
+            # 更新達標預算的狀態
+            if ids_to_complete:
+                db.session.execute(text(
+                    'UPDATE budgets SET status = :status WHERE id IN :ids'
+                ), {'status': 'completed', 'ids': tuple(ids_to_complete)})
+                db.session.commit()
             
             return jsonify(budgets)
         except Exception as e:
             print(f'取得預算錯誤: {e}')
             return jsonify({'error': str(e)}), 500
-    
+    @app.route('/api/budgets/<int:id>', methods=['DELETE'])
+    def delete_budget(id):
+        """刪除預算"""
+        try:
+            db.session.execute(text('DELETE FROM budgets WHERE id = :id'), {'id': id})
+            db.session.commit()
+            return jsonify({'message': '預算已刪除'})
+        except Exception as e:
+            print(f'刪除預算錯誤: {e}')
+            return jsonify({'error': str(e)}), 500
+        
     @app.route('/api/budgets', methods=['POST'])
     @app.route('/api/budgets', methods=['POST'])
     def create_budget():
