@@ -574,7 +574,7 @@ def get_portfolio_monthly_stats():
                 'amount': float(row[1]) * float(row[2])
             })
         
-        return jsonify({
+            return jsonify({
             'monthly_investment': round(monthly_investment, 0),
             'monthly_sell': round(monthly_sell, 0),
             'monthly_dividend': round(monthly_dividend, 0),
@@ -582,6 +582,157 @@ def get_portfolio_monthly_stats():
             'trade_count': trade_count,
             'recent_transactions': recent_transactions
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================
+# 配息記錄 API
+# ============================================
+ # ============================================
+# 配息記錄 API
+# ============================================
+
+@portfolio_bp.route('/api/dividends', methods=['GET'])
+def get_dividends():
+    """取得配息記錄"""
+    try:
+        holding_id = request.args.get('holding_id')
         
+        if holding_id:
+            result = db.session.execute(text('''
+                SELECT d.id, d.holding_id, d.ex_dividend_date, d.payment_date,
+                       d.dividend_per_share, d.total_amount, d.note,
+                       h.symbol, h.name
+                FROM dividend_records d
+                JOIN holdings h ON d.holding_id = h.id
+                WHERE d.holding_id = :holding_id
+                ORDER BY d.ex_dividend_date DESC
+            '''), {'holding_id': holding_id})
+        else:
+            result = db.session.execute(text('''
+                SELECT d.id, d.holding_id, d.ex_dividend_date, d.payment_date,
+                       d.dividend_per_share, d.total_amount, d.note,
+                       h.symbol, h.name
+                FROM dividend_records d
+                JOIN holdings h ON d.holding_id = h.id
+                ORDER BY d.ex_dividend_date DESC
+            '''))
+        
+        dividends = []
+        for row in result:
+            dividends.append({
+                'id': row[0],
+                'holding_id': row[1],
+                'ex_dividend_date': str(row[2]) if row[2] else None,
+                'payment_date': str(row[3]) if row[3] else None,
+                'dividend_per_share': float(row[4]) if row[4] else 0,
+                'total_amount': float(row[5]) if row[5] else 0,
+                'note': row[6],
+                'symbol': row[7],
+                'name': row[8]
+            })
+        
+        return jsonify(dividends)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@portfolio_bp.route('/api/dividends', methods=['POST'])
+def add_dividend():
+    """新增配息記錄"""
+    try:
+        data = request.get_json()
+        
+        holding_id = data.get('holding_id')
+        dividend_per_share = float(data.get('dividend_per_share', 0))
+        
+        # 取得持倉數量來計算總金額
+        result = db.session.execute(text(
+            'SELECT quantity FROM holdings WHERE id = :id'
+        ), {'id': holding_id})
+        row = result.fetchone()
+        
+        if not row:
+            return jsonify({'error': '持倉不存在'}), 404
+        
+        quantity = float(row[0])
+        total_amount = data.get('total_amount') or (quantity * dividend_per_share)
+        
+        db.session.execute(text('''
+            INSERT INTO dividend_records 
+            (holding_id, ex_dividend_date, payment_date, dividend_per_share, total_amount, note)
+            VALUES (:holding_id, :ex_date, :pay_date, :per_share, :total, :note)
+        '''), {
+            'holding_id': holding_id,
+            'ex_date': data.get('ex_dividend_date'),
+            'pay_date': data.get('payment_date'),
+            'per_share': dividend_per_share,
+            'total': total_amount,
+            'note': data.get('note', '')
+        })
+        
+        # 同時記錄到投資交易表
+        db.session.execute(text('''
+            INSERT INTO investment_transactions 
+            (holding_id, transaction_type, quantity, price, transaction_date)
+            VALUES (:holding_id, 'dividend', :quantity, :per_share, :date)
+        '''), {
+            'holding_id': holding_id,
+            'quantity': quantity,
+            'per_share': dividend_per_share,
+            'date': data.get('payment_date') or data.get('ex_dividend_date')
+        })
+        
+        db.session.commit()
+        
+        return jsonify({'message': '配息記錄新增成功', 'total_amount': total_amount}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@portfolio_bp.route('/api/dividends/<int:dividend_id>', methods=['DELETE'])
+def delete_dividend(dividend_id):
+    """刪除配息記錄"""
+    try:
+        db.session.execute(text('DELETE FROM dividend_records WHERE id = :id'), {'id': dividend_id})
+        db.session.commit()
+        return jsonify({'message': '配息記錄已刪除'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@portfolio_bp.route('/api/holdings/<int:holding_id>/dividends', methods=['GET'])
+def get_holding_dividends(holding_id):
+    """取得特定持倉的配息記錄"""
+    try:
+        result = db.session.execute(text('''
+            SELECT id, ex_dividend_date, payment_date, dividend_per_share, total_amount, note
+            FROM dividend_records
+            WHERE holding_id = :holding_id
+            ORDER BY ex_dividend_date DESC
+        '''), {'holding_id': holding_id})
+        
+        dividends = []
+        total_dividend = 0
+        for row in result:
+            amount = float(row[4]) if row[4] else 0
+            total_dividend += amount
+            dividends.append({
+                'id': row[0],
+                'ex_dividend_date': str(row[1]) if row[1] else None,
+                'payment_date': str(row[2]) if row[2] else None,
+                'dividend_per_share': float(row[3]) if row[3] else 0,
+                'total_amount': amount,
+                'note': row[5]
+            })
+        
+        return jsonify({
+            'holding_id': holding_id,
+            'dividends': dividends,
+            'total_dividend': round(total_dividend, 2),
+            'count': len(dividends)
+        })
+          
     except Exception as e:
         return jsonify({'error': str(e)}), 500

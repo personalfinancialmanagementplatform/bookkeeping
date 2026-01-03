@@ -21,9 +21,13 @@ function Portfolio() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
+  const [showSellModal, setShowSellModal] = useState(false);
+  const [showDividendModal, setShowDividendModal] = useState(false);
+  const [selectedHolding, setSelectedHolding] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [searchKeyword, setSearchKeyword] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [dividendRecords, setDividendRecords] = useState([]);
   
   const [newHolding, setNewHolding] = useState({
     account_id: 1,
@@ -35,6 +39,19 @@ function Portfolio() {
     transaction_date: new Date().toISOString().split('T')[0]
   });
 
+  const [sellData, setSellData] = useState({
+    quantity: '',
+    price: '',
+    transaction_date: new Date().toISOString().split('T')[0]
+  });
+
+  const [dividendData, setDividendData] = useState({
+    ex_dividend_date: '',
+    payment_date: '',
+    dividend_per_share: '',
+    note: ''
+  });
+
   useEffect(() => {
     loadData();
   }, []);
@@ -42,20 +59,23 @@ function Portfolio() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [summaryRes, watchlistRes, statsRes] = await Promise.all([
+      const [summaryRes, watchlistRes, statsRes, dividendsRes] = await Promise.all([
         fetch(`${API_BASE}/portfolio/summary`),
         fetch(`${API_BASE}/watchlist`),
-        fetch(`${API_BASE}/portfolio/monthly-stats`)
+        fetch(`${API_BASE}/portfolio/monthly-stats`),
+        fetch(`${API_BASE}/dividends`)
       ]);
       
       const summaryData = await summaryRes.json();
       const watchlistData = await watchlistRes.json();
       const statsData = await statsRes.json();
+      const dividendsData = await dividendsRes.json();
       
       setSummary(summaryData);
       setHoldings(summaryData.holdings || []);
       setWatchlist(watchlistData);
       setMonthlyStats(statsData);
+      setDividendRecords(dividendsData);
     } catch (error) {
       console.error('載入失敗:', error);
     }
@@ -121,6 +141,72 @@ function Portfolio() {
     }
   };
 
+  const handleSell = async (e) => {
+    e.preventDefault();
+    if (!selectedHolding) return;
+    
+    try {
+      const res = await fetch(`${API_BASE}/holdings/${selectedHolding.id}/sell`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sellData)
+      });
+      
+      if (res.ok) {
+        setShowSellModal(false);
+        setSellData({ quantity: '', price: '', transaction_date: new Date().toISOString().split('T')[0] });
+        setSelectedHolding(null);
+        loadData();
+      } else {
+        const err = await res.json();
+        alert(err.error || '賣出失敗');
+      }
+    } catch (error) {
+      console.error('賣出失敗:', error);
+    }
+  };
+
+  const handleAddDividend = async (e) => {
+    e.preventDefault();
+    if (!selectedHolding) return;
+    
+    try {
+      const res = await fetch(`${API_BASE}/dividends`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          holding_id: selectedHolding.id,
+          ...dividendData
+        })
+      });
+      
+      if (res.ok) {
+        setShowDividendModal(false);
+        setDividendData({ ex_dividend_date: '', payment_date: '', dividend_per_share: '', note: '' });
+        setSelectedHolding(null);
+        loadData();
+      }
+    } catch (error) {
+      console.error('新增配息失敗:', error);
+    }
+  };
+
+  const openSellModal = (holding) => {
+    setSelectedHolding(holding);
+    setSellData({ 
+      quantity: '', 
+      price: holding.current_price || '', 
+      transaction_date: new Date().toISOString().split('T')[0] 
+    });
+    setShowSellModal(true);
+  };
+
+  const openDividendModal = (holding) => {
+    setSelectedHolding(holding);
+    setDividendData({ ex_dividend_date: '', payment_date: '', dividend_per_share: '', note: '' });
+    setShowDividendModal(true);
+  };
+
   const handleAddToWatchlist = async (stock) => {
     try {
       const res = await fetch(`${API_BASE}/watchlist`, {
@@ -148,6 +234,10 @@ function Portfolio() {
     } catch (error) {
       console.error('移除失敗:', error);
     }
+  };
+
+  const getHoldingDividends = (holdingId) => {
+    return dividendRecords.filter(d => d.holding_id === holdingId);
   };
 
   const filteredHoldings = filterType === 'all' 
@@ -186,7 +276,7 @@ function Portfolio() {
         </button>
       </div>
 
-      {/* 頂部統計卡片 - 橫向排列 */}
+      {/* 頂部統計卡片 */}
       <div className="stats-row">
         <div className="stat-card-h">
           <span className="stat-icon">💰</span>
@@ -223,7 +313,6 @@ function Portfolio() {
 
       {/* 本月統計 + 資產配置 + 最近交易 */}
       <div className="middle-section">
-        {/* 本月投資統計 */}
         <div className="card monthly-card">
           <h3>📅 本月投資</h3>
           <div className="monthly-grid">
@@ -248,21 +337,12 @@ function Portfolio() {
           </div>
         </div>
 
-        {/* 資產配置圓餅圖 */}
         <div className="card chart-card">
           <h3>📊 資產配置</h3>
           {pieData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={75}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
                   {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -279,7 +359,6 @@ function Portfolio() {
           )}
         </div>
 
-        {/* 最近交易 */}
         <div className="card recent-card">
           <h3>🕐 最近交易</h3>
           {monthlyStats?.recent_transactions?.length > 0 ? (
@@ -291,9 +370,7 @@ function Portfolio() {
                     <span className="stock-name">{t.symbol}</span>
                   </div>
                   <div className="item-right">
-                    <span className="amount">
-                      {t.type === 'buy' ? '-' : '+'}${t.amount?.toLocaleString()}
-                    </span>
+                    <span className="amount">{t.type === 'buy' ? '-' : '+'}${t.amount?.toLocaleString()}</span>
                     <span className="date">{t.date}</span>
                   </div>
                 </li>
@@ -307,12 +384,9 @@ function Portfolio() {
 
       {/* 頁籤 */}
       <div className="tabs">
-        <button className={activeTab === 'holdings' ? 'active' : ''} onClick={() => setActiveTab('holdings')}>
-          持倉明細
-        </button>
-        <button className={activeTab === 'watchlist' ? 'active' : ''} onClick={() => setActiveTab('watchlist')}>
-          關注清單
-        </button>
+        <button className={activeTab === 'holdings' ? 'active' : ''} onClick={() => setActiveTab('holdings')}>持倉明細</button>
+        <button className={activeTab === 'dividends' ? 'active' : ''} onClick={() => setActiveTab('dividends')}>配息記錄</button>
+        <button className={activeTab === 'watchlist' ? 'active' : ''} onClick={() => setActiveTab('watchlist')}>關注清單</button>
       </div>
 
       {/* 持倉列表 */}
@@ -351,30 +425,79 @@ function Portfolio() {
                         <th>現價</th>
                         <th>市值</th>
                         <th>損益</th>
+                        <th>累計配息</th>
                         <th>操作</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {typeHoldings.map(h => (
-                        <tr key={h.id}>
-                          <td><strong>{h.symbol}</strong><br /><small>{h.name}</small></td>
-                          <td>{h.quantity}</td>
-                          <td>NT$ {h.average_cost?.toFixed(2)}</td>
-                          <td>NT$ {h.current_price?.toFixed(2)}</td>
-                          <td>NT$ {h.market_value?.toLocaleString()}</td>
-                          <td className={h.profit >= 0 ? 'profit' : 'loss'}>
-                            {h.profit >= 0 ? '+' : ''}NT$ {h.profit?.toLocaleString()}
-                            <br /><small>({h.profit_rate}%)</small>
-                          </td>
-                          <td>
-                            <button className="btn-sell" onClick={() => alert('賣出功能開發中')}>賣出</button>
-                          </td>
-                        </tr>
-                      ))}
+                      {typeHoldings.map(h => {
+                        const holdingDividends = getHoldingDividends(h.id);
+                        const totalDividend = holdingDividends.reduce((sum, d) => sum + d.total_amount, 0);
+                        return (
+                          <tr key={h.id}>
+                            <td><strong>{h.symbol}</strong><br /><small>{h.name}</small></td>
+                            <td>{h.quantity}</td>
+                            <td>NT$ {h.average_cost?.toFixed(2)}</td>
+                            <td>NT$ {h.current_price?.toFixed(2)}</td>
+                            <td>NT$ {h.market_value?.toLocaleString()}</td>
+                            <td className={h.profit >= 0 ? 'profit' : 'loss'}>
+                              {h.profit >= 0 ? '+' : ''}NT$ {h.profit?.toLocaleString()}
+                              <br /><small>({h.profit_rate}%)</small>
+                            </td>
+                            <td className="dividend-cell">
+                              {totalDividend > 0 ? (
+                                <span className="dividend-amount">+NT$ {totalDividend.toLocaleString()}</span>
+                              ) : (
+                                <span className="no-dividend">-</span>
+                              )}
+                            </td>
+                            <td className="action-cell">
+                              <button className="btn-dividend" onClick={() => openDividendModal(h)}>配息</button>
+                              <button className="btn-sell" onClick={() => openSellModal(h)}>賣出</button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 配息記錄 */}
+      {activeTab === 'dividends' && (
+        <div className="dividends-section">
+          {dividendRecords.length === 0 ? (
+            <div className="empty-state"><p>尚無配息記錄</p></div>
+          ) : (
+            <div className="card">
+              <table className="dividends-table">
+                <thead>
+                  <tr>
+                    <th>標的</th>
+                    <th>除息日</th>
+                    <th>入帳日</th>
+                    <th>每股配息</th>
+                    <th>總金額</th>
+                    <th>備註</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dividendRecords.map(d => (
+                    <tr key={d.id}>
+                      <td><strong>{d.symbol}</strong><br /><small>{d.name}</small></td>
+                      <td>{d.ex_dividend_date || '-'}</td>
+                      <td>{d.payment_date || '-'}</td>
+                      <td>NT$ {d.dividend_per_share?.toFixed(2)}</td>
+                      <td className="dividend-amount">+NT$ {d.total_amount?.toLocaleString()}</td>
+                      <td>{d.note || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -417,12 +540,7 @@ function Portfolio() {
             <form onSubmit={handleAddHolding}>
               <div className="form-group">
                 <label>搜尋股票</label>
-                <input
-                  type="text"
-                  value={searchKeyword}
-                  onChange={(e) => { setSearchKeyword(e.target.value); searchStocks(e.target.value); }}
-                  placeholder="輸入代號或名稱..."
-                />
+                <input type="text" value={searchKeyword} onChange={(e) => { setSearchKeyword(e.target.value); searchStocks(e.target.value); }} placeholder="輸入代號或名稱..." />
                 {searchResults.length > 0 && (
                   <ul className="search-results">
                     {searchResults.map(s => (
@@ -443,12 +561,7 @@ function Portfolio() {
               </div>
               <div className="form-group">
                 <label>購買日期</label>
-                <input 
-                  type="date" 
-                  value={newHolding.transaction_date} 
-                  onChange={(e) => setNewHolding({...newHolding, transaction_date: e.target.value})}
-                  required 
-                />
+                <input type="date" value={newHolding.transaction_date} onChange={(e) => setNewHolding({...newHolding, transaction_date: e.target.value})} required />
               </div>
               <div className="form-row">
                 <div className="form-group">
@@ -469,6 +582,84 @@ function Portfolio() {
         </div>
       )}
 
+      {/* 賣出 Modal */}
+      {showSellModal && selectedHolding && (
+        <div className="modal-overlay" onClick={() => setShowSellModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>賣出 {selectedHolding.symbol} {selectedHolding.name}</h3>
+            <p className="modal-info">持有數量：{selectedHolding.quantity} 股</p>
+            <form onSubmit={handleSell}>
+              <div className="form-group">
+                <label>賣出日期</label>
+                <input type="date" value={sellData.transaction_date} onChange={(e) => setSellData({...sellData, transaction_date: e.target.value})} required />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>賣出數量（股）</label>
+                  <input type="number" max={selectedHolding.quantity} value={sellData.quantity} onChange={(e) => setSellData({...sellData, quantity: e.target.value})} required />
+                </div>
+                <div className="form-group">
+                  <label>賣出價格</label>
+                  <input type="number" step="0.01" value={sellData.price} onChange={(e) => setSellData({...sellData, price: e.target.value})} required />
+                </div>
+              </div>
+              {sellData.quantity && sellData.price && (
+                <div className="sell-preview">
+                  <p>賣出金額：NT$ {(sellData.quantity * sellData.price).toLocaleString()}</p>
+                  <p className={sellData.price >= selectedHolding.average_cost ? 'profit' : 'loss'}>
+                    預估損益：{sellData.price >= selectedHolding.average_cost ? '+' : ''}
+                    NT$ {((sellData.price - selectedHolding.average_cost) * sellData.quantity).toLocaleString()}
+                  </p>
+                </div>
+              )}
+              <div className="form-actions">
+                <button type="button" className="btn-cancel" onClick={() => setShowSellModal(false)}>取消</button>
+                <button type="submit" className="btn-sell-confirm">確認賣出</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 配息 Modal */}
+      {showDividendModal && selectedHolding && (
+        <div className="modal-overlay" onClick={() => setShowDividendModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>新增配息 - {selectedHolding.symbol} {selectedHolding.name}</h3>
+            <p className="modal-info">持有數量：{selectedHolding.quantity} 股</p>
+            <form onSubmit={handleAddDividend}>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>除息日</label>
+                  <input type="date" value={dividendData.ex_dividend_date} onChange={(e) => setDividendData({...dividendData, ex_dividend_date: e.target.value})} required />
+                </div>
+                <div className="form-group">
+                  <label>入帳日</label>
+                  <input type="date" value={dividendData.payment_date} onChange={(e) => setDividendData({...dividendData, payment_date: e.target.value})} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>每股配息金額</label>
+                <input type="number" step="0.01" value={dividendData.dividend_per_share} onChange={(e) => setDividendData({...dividendData, dividend_per_share: e.target.value})} required />
+              </div>
+              {dividendData.dividend_per_share && (
+                <div className="dividend-preview">
+                  <p>預估總配息：NT$ {(selectedHolding.quantity * dividendData.dividend_per_share).toLocaleString()}</p>
+                </div>
+              )}
+              <div className="form-group">
+                <label>備註</label>
+                <input type="text" value={dividendData.note} onChange={(e) => setDividendData({...dividendData, note: e.target.value})} placeholder="例如：Q1 配息" />
+              </div>
+              <div className="form-actions">
+                <button type="button" className="btn-cancel" onClick={() => setShowDividendModal(false)}>取消</button>
+                <button type="submit" className="btn-primary">確認新增</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* 新增關注 Modal */}
       {showWatchlistModal && (
         <div className="modal-overlay" onClick={() => setShowWatchlistModal(false)}>
@@ -476,12 +667,7 @@ function Portfolio() {
             <h3>新增關注標的</h3>
             <div className="form-group">
               <label>搜尋股票</label>
-              <input
-                type="text"
-                value={searchKeyword}
-                onChange={(e) => { setSearchKeyword(e.target.value); searchStocks(e.target.value); }}
-                placeholder="輸入代號或名稱..."
-              />
+              <input type="text" value={searchKeyword} onChange={(e) => { setSearchKeyword(e.target.value); searchStocks(e.target.value); }} placeholder="輸入代號或名稱..." />
               {searchResults.length > 0 && (
                 <ul className="search-results">
                   {searchResults.map(s => (
