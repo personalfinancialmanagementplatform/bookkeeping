@@ -17,9 +17,9 @@ export const accountsAPI = {
 
 // 分類 API
 export const categoriesAPI = {
-  getAll: (type) => api.get('/categories', { params: { type } }),
-};
-
+    getAll: () => api.get('/categories'),
+  };
+  
 // 交易 API
 export const transactionsAPI = {
   getAll: (params) => api.get('/transactions', { params }),

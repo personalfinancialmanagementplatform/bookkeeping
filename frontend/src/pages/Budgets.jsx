@@ -19,17 +19,36 @@ function Budgets() {
 
   const loadData = async () => {
     try {
-      const [budgetsRes, catRes] = await Promise.all([
-        budgetsAPI.getAll(),
-        categoriesAPI.getAll('expense')
-      ]);
-      setBudgets(budgetsRes.data);
-      setCategories(catRes.data);
+      // 分開呼叫，避免其中一個失敗影響另一個
+      let budgetsData = [];
+      let categoriesData = [];
+      
+      try {
+        const budgetsRes = await budgetsAPI.getAll();
+        budgetsData = budgetsRes.data || [];
+      } catch (e) {
+        console.error('載入預算失敗:', e);
+      }
+      
+      try {
+        const catRes = await categoriesAPI.getAll();
+        categoriesData = catRes.data || [];
+        console.log('分類資料:', categoriesData);
+      } catch (e) {
+        console.error('載入分類失敗:', e);
+      }
+      
+      setBudgets(budgetsData);
+      
+      // 篩選支出類別
+      const expenseCategories = categoriesData.filter(c => c.type === 'expense');
+      console.log('支出分類:', expenseCategories);
+      setCategories(expenseCategories);
+      
     } catch (error) {
       console.error('載入失敗:', error);
     }
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -49,6 +68,7 @@ function Budgets() {
       loadData();
     } catch (error) {
       console.error('新增失敗:', error);
+      alert('新增失敗，請檢查所有欄位是否填寫正確');
     }
   };
 
@@ -56,6 +76,20 @@ function Budgets() {
     if (percent >= 100) return 'danger';
     if (percent >= 80) return 'warning';
     return '';
+  };
+
+  const getPeriodLabel = (period) => {
+    const labels = {
+      'today': '本日',
+      'this_week': '本週',
+      'this_month': '本月',
+      'this_year': '本年',
+      'daily': '每日',
+      'weekly': '每週',
+      'monthly': '每月',
+      'yearly': '每年'
+    };
+    return labels[period] || period;
   };
 
   return (
@@ -77,6 +111,10 @@ function Budgets() {
               <span className={`tag ${budget.status === 'over' ? 'tag-expense' : 'tag-income'}`}>
                 {budget.status === 'over' ? '超支' : budget.status === 'warning' ? '警告' : '正常'}
               </span>
+            </div>
+            
+            <div style={{ marginBottom: '5px', color: '#666', fontSize: '0.85rem' }}>
+              週期：{getPeriodLabel(budget.period)}
             </div>
             
             <div style={{ marginBottom: '10px' }}>
@@ -153,10 +191,18 @@ function Budgets() {
                   value={form.period}
                   onChange={e => setForm({ ...form, period: e.target.value })}
                 >
-                  <option value="daily">每日</option>
-                  <option value="weekly">每週</option>
-                  <option value="monthly">每月</option>
-                  <option value="yearly">每年</option>
+                  <optgroup label="📅 本期預算">
+                    <option value="today">本日</option>
+                    <option value="this_week">本週</option>
+                    <option value="this_month">本月</option>
+                    <option value="this_year">本年</option>
+                  </optgroup>
+                  <optgroup label="🔄 週期預算">
+                    <option value="daily">每日</option>
+                    <option value="weekly">每週</option>
+                    <option value="monthly">每月</option>
+                    <option value="yearly">每年</option>
+                  </optgroup>
                 </select>
               </div>
               <div className="form-group">

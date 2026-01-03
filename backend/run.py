@@ -120,7 +120,7 @@ def create_app():
     app.config['JSON_AS_ASCII'] = False  # 支援中文顯示
     
     # 啟用 CORS
-    CORS(app)
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
     
     # 初始化資料庫
     db.init_app(app)
@@ -445,65 +445,76 @@ def create_app():
         取得所有預算及使用狀態
         功能：更新各類別支出與預算狀態
         """
-        result = db.session.execute(text('''
-            SELECT b.*, c.name as category_name, c.icon as category_icon,
-                   COALESCE((
-                       SELECT SUM(t.amount) 
-                       FROM transactions t 
-                       WHERE t.category_id = b.category_id 
-                       AND t.type = 'expense'
-                       AND t.date >= b.start_date
-                       AND (b.end_date IS NULL OR t.date <= b.end_date)
-                   ), 0) as spent
-            FROM budgets b
-            JOIN categories c ON b.category_id = c.id
-            WHERE b.is_active = true
-        '''))
-        
-        budgets = []
-        for row in result:
-            budget_amount = float(row[4]) if row[4] else 0
-            spent = float(row[12]) if row[12] else 0
-            remaining = budget_amount - spent
-            usage_percent = (spent / budget_amount * 100) if budget_amount > 0 else 0
+        try:
+            result = db.session.execute(text('''
+                SELECT b.id, b.category_id, b.name, b.amount, b.period, 
+                       b.start_date, b.end_date, b.is_active,
+                       c.name as category_name, c.icon as category_icon,
+                       COALESCE((
+                           SELECT SUM(t.amount) 
+                           FROM transactions t 
+                           WHERE t.category_id = b.category_id 
+                           AND t.type = 'expense'
+                           AND t.date >= b.start_date
+                           AND (b.end_date IS NULL OR t.date <= b.end_date)
+                       ), 0) as spent
+                FROM budgets b
+                JOIN categories c ON b.category_id = c.id
+                WHERE b.is_active = true
+            '''))
             
-            budgets.append({
-                'id': row[0],
-                'category_id': row[1],
-                'category_name': row[10],
-                'category_icon': row[11],
-                'name': row[2],
-                'amount': budget_amount,
-                'period': row[5],
-                'start_date': str(row[6]) if row[6] else None,
-                'end_date': str(row[7]) if row[7] else None,
-                'spent': spent,
-                'remaining': remaining,
-                'usage_percent': round(usage_percent, 2),
-                'status': 'over' if remaining < 0 else 'warning' if usage_percent > 80 else 'ok'
-            })
-        
-        return jsonify(budgets)
+            budgets = []
+            for row in result:
+                budget_amount = float(row[3]) if row[3] else 0
+                spent = float(row[10]) if row[10] else 0
+                remaining = budget_amount - spent
+                usage_percent = (spent / budget_amount * 100) if budget_amount > 0 else 0
+                
+                budgets.append({
+                    'id': row[0],
+                    'category_id': row[1],
+                    'name': row[2],
+                    'amount': budget_amount,
+                    'period': row[4],
+                    'start_date': str(row[5]) if row[5] else None,
+                    'end_date': str(row[6]) if row[6] else None,
+                    'category_name': row[8],
+                    'category_icon': row[9],
+                    'spent': spent,
+                    'remaining': remaining,
+                    'usage_percent': round(usage_percent, 2),
+                    'status': 'over' if remaining < 0 else 'warning' if usage_percent > 80 else 'ok'
+                })
+            
+            return jsonify(budgets)
+        except Exception as e:
+            print(f'取得預算錯誤: {e}')
+            return jsonify({'error': str(e)}), 500
     
+    @app.route('/api/budgets', methods=['POST'])
     @app.route('/api/budgets', methods=['POST'])
     def create_budget():
         """建立新預算"""
-        data = request.get_json()
-        
-        db.session.execute(text('''
-            INSERT INTO budgets (category_id, name, amount, period, start_date, end_date)
-            VALUES (:category_id, :name, :amount, :period, :start_date, :end_date)
-        '''), {
-            'category_id': data['category_id'],
-            'name': data['name'],
-            'amount': data['amount'],
-            'period': data.get('period', 'monthly'),
-            'start_date': data['start_date'],
-            'end_date': data.get('end_date')
-        })
-        db.session.commit()
-        
-        return jsonify({'message': '預算建立成功'}), 201
+        try:
+            data = request.get_json()
+            
+            db.session.execute(text('''
+                INSERT INTO budgets (category_id, name, amount, period, start_date, end_date)
+                VALUES (:category_id, :name, :amount, :period, :start_date, :end_date)
+            '''), {
+                'category_id': data['category_id'],
+                'name': data['name'],
+                'amount': data['amount'],
+                'period': data.get('period', 'monthly'),
+                'start_date': data['start_date'],
+                'end_date': data.get('end_date')
+            })
+            db.session.commit()
+            
+            return jsonify({'message': '預算建立成功'}), 201
+        except Exception as e:
+            print(f'新增預算錯誤: {e}')
+            return jsonify({'error': str(e)}), 500
     
     # 財務目標 API - 目標追蹤與儲蓄管理(參考 Firefly III Piggy Banks)
     
