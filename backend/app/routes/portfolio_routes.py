@@ -460,7 +460,7 @@ def get_stock_quote(symbol):
 
 
 # ============================================
-# 風險評估 API
+# 風險評估 API（舊版）
 # ============================================
 
 @portfolio_bp.route('/api/risk-assessment', methods=['POST'])
@@ -513,13 +513,14 @@ def create_risk_assessment():
         return jsonify({'error': str(e)}), 500
 
 
-@portfolio_bp.route('/api/portfolio/monthly-stats', methods=['GET'])
+# ============================================
+# 投資月度統計 API
+# ============================================
 
+@portfolio_bp.route('/api/portfolio/monthly-stats', methods=['GET'])
 def get_portfolio_monthly_stats():
     """取得本月投資統計"""
     try:
-        from datetime import datetime, date
-        
         # 本月起始日
         start_of_month = datetime.now().replace(day=1).strftime('%Y-%m-%d')
         
@@ -577,7 +578,7 @@ def get_portfolio_monthly_stats():
                 'amount': float(row[1]) * float(row[2])
             })
         
-            return jsonify({
+        return jsonify({
             'monthly_investment': round(monthly_investment, 0),
             'monthly_sell': round(monthly_sell, 0),
             'monthly_dividend': round(monthly_dividend, 0),
@@ -590,9 +591,6 @@ def get_portfolio_monthly_stats():
 
 
 # ============================================
-# 配息記錄 API
-# ============================================
- # ============================================
 # 配息記錄 API
 # ============================================
 
@@ -736,10 +734,11 @@ def get_holding_dividends(holding_id):
             'total_dividend': round(total_dividend, 2),
             'count': len(dividends)
         })
-          
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    # ============================================
+
+
+# ============================================
 # 即時股價 API (增強版)
 # ============================================
 
@@ -818,7 +817,7 @@ def refresh_holdings_prices():
 
 
 # ============================================
-# 風險問卷 API (新增)
+# 風險問卷 API（金管會標準 12 題）
 # ============================================
 
 @portfolio_bp.route('/api/risk-assessment/questions', methods=['GET'])
@@ -826,10 +825,7 @@ def get_risk_questions():
     """取得風險評估問卷題目"""
     try:
         questions = RiskQuestionnaire.get_questions()
-        return jsonify({
-            'questions': questions,
-            'total_questions': len(questions)
-        })
+        return jsonify(questions)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -844,23 +840,30 @@ def calculate_risk_level():
         if not answers_raw:
             return jsonify({'error': '請提供問卷答案'}), 400
         
-        # 轉換 key 為整數
-        try:
-            answers = {int(k): int(v) for k, v in answers_raw.items()}
-        except:
-            return jsonify({'error': '答案格式錯誤'}), 400
+        # 轉換答案格式（處理單選和複選）
+        answers = {}
+        for k, v in answers_raw.items():
+            key = int(k)
+            if isinstance(v, list):
+                # 複選題：保持列表格式
+                answers[key] = [int(x) for x in v]
+            else:
+                # 單選題：轉為整數
+                answers[key] = int(v)
         
-        if len(answers) < 5:
+        if len(answers) < 12:
             return jsonify({'error': '請完成所有題目'}), 400
         
         result = RiskQuestionnaire.calculate_risk_level(answers)
         return jsonify(result)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
 # ============================================
-# 配置建議 API (新增)
+# 配置建議 API
 # ============================================
 
 @portfolio_bp.route('/api/portfolio/recommend', methods=['POST'])
