@@ -8,6 +8,8 @@ import RiskQuestionnaire from './RiskQuestionnaire';
 import { usePortfolioRecommendation } from '../hooks/useStockData';
 import './PortfolioAdvisor.css';
 
+const API_BASE = 'http://localhost:5005/api';
+
 const RISK_OPTIONS = [
   {
     value: 'conservative',
@@ -41,24 +43,34 @@ const GOAL_OPTIONS = [
 
 const ASSET_COLORS = {
   stocks: '#e74c3c',
+  stock: '#e74c3c',
   etf: '#3498db',
   bonds: '#2ecc71',
+  bond: '#2ecc71',
   cash: '#95a5a6'
 };
 
 const ASSET_LABELS = {
   stocks: '股票',
+  stock: '股票',
   etf: 'ETF',
   bonds: '債券',
+  bond: '債券',
   cash: '現金'
 };
 
 const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
   const [step, setStep] = useState('input'); // 'questionnaire', 'input', 'result'
-  const [amount, setAmount] = useState(100000);
+  const [amount, setAmount] = useState(10000);
   const [riskLevel, setRiskLevel] = useState('moderate');
   const [goal, setGoal] = useState('wealth_growth');
   const [age, setAge] = useState('');
+  
+  // 自訂標的
+  const [customSymbols, setCustomSymbols] = useState([]);
+  const [symbolInput, setSymbolInput] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   
   const { 
     recommendation, 
@@ -68,6 +80,41 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
     getQuickRecommendation,
     clear 
   } = usePortfolioRecommendation();
+
+  // 搜尋股票
+  const searchStocks = async (keyword) => {
+    if (keyword.length < 1) {
+      setSearchResults([]);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/stocks/search?q=${keyword}`);
+      const data = await res.json();
+      setSearchResults(data.slice(0, 8));
+    } catch (error) {
+      console.error('搜尋失敗:', error);
+    }
+    setSearchLoading(false);
+  };
+
+  // 新增自訂標的
+  const handleAddSymbol = (stock) => {
+    if (!customSymbols.find(s => s.symbol === stock.symbol)) {
+      setCustomSymbols([...customSymbols, {
+        symbol: stock.symbol,
+        name: stock.name,
+        type: stock.type === 'ETF' ? 'etf' : 'stock'
+      }]);
+    }
+    setSymbolInput('');
+    setSearchResults([]);
+  };
+
+  // 移除自訂標的
+  const handleRemoveSymbol = (symbol) => {
+    setCustomSymbols(customSymbols.filter(s => s.symbol !== symbol));
+  };
 
   const handleQuestionnaireComplete = (resultRiskLevel) => {
     setRiskLevel(resultRiskLevel);
@@ -83,17 +130,27 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
   };
 
   const handleGetRecommendation = async () => {
+    if (amount < 1000) {
+      alert('最低投資金額為 NT$ 1,000');
+      return;
+    }
+    
     await getRecommendation({
       amount,
       risk_level: riskLevel,
       goal,
       age: age ? parseInt(age) : null,
-      existing_holdings: existingHoldings
+      existing_holdings: existingHoldings,
+      custom_symbols: customSymbols.length > 0 ? customSymbols : null
     });
     setStep('result');
   };
 
   const handleQuickRecommendation = async (profile) => {
+    if (amount < 1000) {
+      alert('最低投資金額為 NT$ 1,000');
+      return;
+    }
     await getQuickRecommendation(amount, profile);
     setStep('result');
   };
@@ -147,7 +204,7 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
       {step === 'input' && (
         <div className="input-container">
           <div className="advisor-header">
-            <h2> 投資組合配置建議</h2>
+            <h2>投資組合配置建議</h2>
             <p className="subtitle">
               輸入您的投資條件，獲得個人化的資產配置建議
             </p>
@@ -156,27 +213,21 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
           {/* 投資金額 */}
           <div className="form-section">
             <label className="form-label">投資金額 (NT$)</label>
-            <div className="amount-input-group">
-              <input
-                type="number"
-                className="form-input amount-input"
-                value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
-                min="10000"
-                step="10000"
-              />
-              <div className="amount-presets">
-                {[50000, 100000, 300000, 500000, 1000000].map(preset => (
-                  <button
-                    key={preset}
-                    className={`preset-btn ${amount === preset ? 'active' : ''}`}
-                    onClick={() => setAmount(preset)}
-                  >
-                    {preset >= 1000000 ? `${preset/1000000}M` : `${preset/1000}K`}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <input
+              type="number"
+              className="form-input amount-input"
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              min="1000"
+              step="1000"
+              placeholder="請輸入金額（最低 1,000 元）"
+            />
+            {amount > 0 && amount < 1000 && (
+              <span className="error-hint">最低投資金額為 NT$ 1,000</span>
+            )}
+            <span className="amount-display">
+              {amount >= 1000 && `= ${formatAmount(amount)}`}
+            </span>
           </div>
 
           {/* 風險等級 */}
@@ -224,9 +275,66 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
             </div>
           </div>
 
+          {/* 自訂投資標的 */}
+          <div className="form-section">
+            <label className="form-label">自訂投資標的 (選填)</label>
+            <p className="form-hint">加入您想要的股票或 ETF，系統將優先納入配置</p>
+            
+            <div className="symbol-search">
+              <input
+                type="text"
+                className="form-input"
+                value={symbolInput}
+                onChange={(e) => {
+                  setSymbolInput(e.target.value);
+                  searchStocks(e.target.value);
+                }}
+                placeholder="搜尋股票代號或名稱..."
+              />
+              {searchLoading && <span className="search-loading">搜尋中...</span>}
+              
+              {searchResults.length > 0 && (
+                <ul className="search-dropdown">
+                  {searchResults.map(stock => (
+                    <li 
+                      key={stock.symbol} 
+                      onClick={() => handleAddSymbol(stock)}
+                      className="search-item"
+                    >
+                      <span className="stock-symbol">{stock.symbol}</span>
+                      <span className="stock-name">{stock.name}</span>
+                      <span className={`stock-type ${stock.type === 'ETF' ? 'etf' : 'stock'}`}>
+                        {stock.type}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* 已選標的 */}
+            {customSymbols.length > 0 && (
+              <div className="selected-symbols">
+                {customSymbols.map(stock => (
+                  <div key={stock.symbol} className="symbol-tag">
+                    <span className={`tag-type ${stock.type}`}>{stock.type === 'etf' ? 'ETF' : '股票'}</span>
+                    <span className="tag-symbol">{stock.symbol}</span>
+                    <span className="tag-name">{stock.name}</span>
+                    <button 
+                      className="tag-remove"
+                      onClick={() => handleRemoveSymbol(stock.symbol)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* 年齡 */}
           <div className="form-section">
-            <label className="form-label">年齡 (選填 用於微調風險建議)</label>
+            <label className="form-label">年齡 (選填，用於微調風險建議)</label>
             <input
               type="number"
               className="form-input age-input"
@@ -243,9 +351,9 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
             <button
               className="btn btn-primary btn-lg"
               onClick={handleGetRecommendation}
-              disabled={loading || amount < 10000}
+              disabled={loading || amount < 1000}
             >
-              {loading ? '分析中...' : ' 取得配置建議'}
+              {loading ? '分析中...' : '🎯 取得配置建議'}
             </button>
           </div>
 
@@ -256,23 +364,23 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
               <button 
                 className="quick-btn"
                 onClick={() => handleQuickRecommendation('conservative')}
-                disabled={loading}
+                disabled={loading || amount < 1000}
               >
-                保守配置
+                🛡️ 保守配置
               </button>
               <button 
                 className="quick-btn"
                 onClick={() => handleQuickRecommendation('balanced')}
-                disabled={loading}
+                disabled={loading || amount < 1000}
               >
-                平衡配置
+                ⚖️ 平衡配置
               </button>
               <button 
                 className="quick-btn"
                 onClick={() => handleQuickRecommendation('growth')}
-                disabled={loading}
+                disabled={loading || amount < 1000}
               >
-                成長配置
+                🚀 成長配置
               </button>
             </div>
           </div>
@@ -287,7 +395,7 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
       {step === 'result' && recommendation && (
         <div className="result-container">
           <div className="result-header">
-            <h2> 您的配置建議</h2>
+            <h2>📊 您的配置建議</h2>
             <button className="reconfigure-btn" onClick={handleReconfigure}>
               ← 重新配置
             </button>
@@ -318,7 +426,7 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
 
           {/* 配置圖表 */}
           <div className="chart-section">
-            <h3>資產配置比例</h3>
+            <h3>📈 資產配置比例</h3>
             <div className="simple-pie-chart">
               {getPieData().map((item, index) => (
                 <div key={index} className="pie-legend-item">
@@ -335,7 +443,7 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
 
           {/* 配置明細 */}
           <div className="allocations-section">
-            <h3>建議標的</h3>
+            <h3>💼 建議標的</h3>
             <div className="allocations-list">
               {recommendation.allocations.map((item, index) => (
                 <div key={index} className="allocation-card">
@@ -384,11 +492,11 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
           {/* 操作按鈕 */}
           <div className="result-actions">
             <button className="btn btn-secondary" onClick={handleReconfigure}>
-              重新配置
+              🔄 重新配置
             </button>
             {onApply && (
               <button className="btn btn-primary" onClick={handleApply}>
-                 套用此配置
+                ✅ 套用此配置
               </button>
             )}
           </div>
