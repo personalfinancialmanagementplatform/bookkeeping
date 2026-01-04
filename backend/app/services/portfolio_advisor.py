@@ -3,7 +3,7 @@
 檔案位置: backend/app/services/portfolio_advisor.py
 
 功能：
-1. 風險問卷評估（5題簡易問卷）
+1. 風險問卷評估（金管會標準 12 題）
 2. 直接選擇風險偏好（保守/穩健/積極）
 3. 根據投資目標調整配置
 4. 推薦具體標的（台灣 ETF、個股、債券）
@@ -64,117 +64,273 @@ class AllocationResult:
 
 
 # ============================================
-# 風險問卷系統
+# 風險問卷系統（金管會標準版）
 # ============================================
 class RiskQuestionnaire:
     """
-    風險承受度問卷
-    - 5 題簡易問卷
-    - 根據回答計算風險分數
-    - 對應風險等級
+    風險評估問卷（金管會標準版）
+    共 12 題，依據分數判斷風險屬性
     """
     
-    # 問卷題目
     QUESTIONS = [
         {
             'id': 1,
-            'question': '您的投資經驗有多長？',
+            'question': '您的年齡層',
+            'type': 'single',
             'options': [
-                {'value': 1, 'text': '沒有投資經驗'},
-                {'value': 2, 'text': '1-3 年'},
-                {'value': 3, 'text': '3-5 年'},
-                {'value': 4, 'text': '5 年以上'}
+                {'value': 1, 'label': '65 歲以上', 'score': 1},
+                {'value': 2, 'label': '56~64 歲', 'score': 2},
+                {'value': 3, 'label': '46~55 歲', 'score': 3},
+                {'value': 4, 'label': '36~45 歲', 'score': 4},
+                {'value': 5, 'label': '19~35 歲', 'score': 5},
+                {'value': 6, 'label': '18 歲以下', 'score': 3}
             ]
         },
         {
             'id': 2,
-            'question': '如果您的投資在一個月內下跌 20%，您會？',
+            'question': '您曾使用過的理財工具',
+            'type': 'multiple',
+            'hint': '可複選',
             'options': [
-                {'value': 1, 'text': '立即賣出，避免更多損失'},
-                {'value': 2, 'text': '賣出一部分，保留一些'},
-                {'value': 3, 'text': '持續觀望，不做任何動作'},
-                {'value': 4, 'text': '趁低加碼買進'}
+                {'value': 1, 'label': '無使用理財工具', 'score': 0},
+                {'value': 2, 'label': '儲蓄保險、定期存款、黃金、貨幣市場型基金', 'score': 1},
+                {'value': 3, 'label': '債券類型相關的基金（如：債券型基金、債券型 ETF）', 'score': 2},
+                {'value': 4, 'label': '其他類型基金（如：股票型基金）', 'score': 3},
+                {'value': 5, 'label': '股票', 'score': 4},
+                {'value': 6, 'label': '外匯交易（如：外匯保證金、外匯遠期交易）', 'score': 5},
+                {'value': 7, 'label': '期貨或選擇權或其他衍生性金融商品', 'score': 6}
             ]
         },
         {
             'id': 3,
-            'question': '您預計這筆投資要持有多久？',
+            'question': '投資債券類型相關商品之理財工具經驗',
+            'type': 'single',
             'options': [
-                {'value': 1, 'text': '1 年以內'},
-                {'value': 2, 'text': '1-3 年'},
-                {'value': 3, 'text': '3-5 年'},
-                {'value': 4, 'text': '5 年以上'}
+                {'value': 1, 'label': '無經驗', 'score': 0},
+                {'value': 2, 'label': '1 年以下', 'score': 1},
+                {'value': 3, 'label': '1 年(含)~3 年', 'score': 2},
+                {'value': 4, 'label': '3 年(含)~5 年', 'score': 3},
+                {'value': 5, 'label': '5 年(含)以上', 'score': 4}
             ]
         },
         {
             'id': 4,
-            'question': '這筆投資佔您總資產的比例？',
+            'question': '投資其他非債券類型相關商品之理財工具經驗',
+            'type': 'single',
             'options': [
-                {'value': 4, 'text': '10% 以下'},
-                {'value': 3, 'text': '10-30%'},
-                {'value': 2, 'text': '30-50%'},
-                {'value': 1, 'text': '50% 以上'}
+                {'value': 1, 'label': '無經驗', 'score': 0},
+                {'value': 2, 'label': '1 年以下', 'score': 1},
+                {'value': 3, 'label': '1 年(含)~3 年', 'score': 2},
+                {'value': 4, 'label': '3 年(含)~5 年', 'score': 3},
+                {'value': 5, 'label': '5 年(含)以上', 'score': 4}
             ]
         },
         {
             'id': 5,
-            'question': '您對投資報酬的期望是？',
+            'question': '下列何者最符合您對投資理財工具的理解',
+            'type': 'single',
             'options': [
-                {'value': 1, 'text': '保本最重要，微幅獲利即可 (年化 3-5%)'},
-                {'value': 2, 'text': '穩定成長，可接受小幅波動 (年化 5-8%)'},
-                {'value': 3, 'text': '追求較高報酬，可接受中等波動 (年化 8-12%)'},
-                {'value': 4, 'text': '追求最大報酬，可接受大幅波動 (年化 12%+)'}
+                {'value': 1, 'label': '對投資理財工具不熟悉，但有興趣進一步瞭解', 'score': 1},
+                {'value': 2, 'label': '瞭解基本知識，例如股票與基金的分別', 'score': 2},
+                {'value': 3, 'label': '瞭解基本知識，並明白分散投資及資產配置的重要性', 'score': 3},
+                {'value': 4, 'label': '對投資理財工具及其投資風險有進一步的認識', 'score': 4},
+                {'value': 5, 'label': '非常熟悉大部份投資理財工具，並明白影響風險和表現的各項因素', 'score': 5}
+            ]
+        },
+        {
+            'id': 6,
+            'question': '每年可用於購買投資理財工具之金額（新台幣）',
+            'type': 'single',
+            'options': [
+                {'value': 1, 'label': '未滿 50 萬', 'score': 1},
+                {'value': 2, 'label': '50 萬(含)以上~未滿 100 萬', 'score': 2},
+                {'value': 3, 'label': '100 萬(含)以上~未滿 300 萬', 'score': 3},
+                {'value': 4, 'label': '300 萬(含)以上', 'score': 4}
+            ]
+        },
+        {
+            'id': 7,
+            'question': '請問您的備用金（現金及存款）相當於您幾個月的生活開銷？',
+            'type': 'single',
+            'hint': '在您考慮投資之前，建議先準備一筆可以隨時動用且足以因應不時之需的備用金',
+            'options': [
+                {'value': 1, 'label': '無備用金或無須負擔生活開銷', 'score': 0},
+                {'value': 2, 'label': '3 個月以下', 'score': 1},
+                {'value': 3, 'label': '超過(含)3 個月未達 6 個月', 'score': 2},
+                {'value': 4, 'label': '超過(含)6 個月未達 1 年', 'score': 3},
+                {'value': 5, 'label': '超過(含)1 年', 'score': 4},
+                {'value': 6, 'label': '超過(含)3 年以上', 'score': 5}
+            ]
+        },
+        {
+            'id': 8,
+            'question': '每年可承受的價格損失（含匯率風險）',
+            'type': 'single',
+            'options': [
+                {'value': 1, 'label': '無法接受虧損', 'score': 0},
+                {'value': 2, 'label': '-5%', 'score': 1},
+                {'value': 3, 'label': '-10%', 'score': 2},
+                {'value': 4, 'label': '-15%', 'score': 3},
+                {'value': 5, 'label': '-20%', 'score': 4}
+            ]
+        },
+        {
+            'id': 9,
+            'question': '在達到預計投資期間時（例如 3 年、5 年），可承受的價格損失',
+            'type': 'single',
+            'options': [
+                {'value': 1, 'label': '無法接受虧損', 'score': 0},
+                {'value': 2, 'label': '-5%', 'score': 1},
+                {'value': 3, 'label': '-10%', 'score': 2},
+                {'value': 4, 'label': '-15%', 'score': 3},
+                {'value': 5, 'label': '-20%', 'score': 4}
+            ]
+        },
+        {
+            'id': 10,
+            'question': '您的投資回報期望',
+            'type': 'single',
+            'options': [
+                {'value': 1, 'label': '避免資產損失', 'score': 1},
+                {'value': 2, 'label': '資產每年穩定成長', 'score': 3},
+                {'value': 3, 'label': '資產短期快速成長', 'score': 5}
+            ]
+        },
+        {
+            'id': 11,
+            'question': '就長期投資而言，您期望每年平均投資報酬率',
+            'type': 'single',
+            'options': [
+                {'value': 1, 'label': '1%(含)~5%', 'score': 1},
+                {'value': 2, 'label': '5%(含)~10%', 'score': 2},
+                {'value': 3, 'label': '10%(含)~15%', 'score': 3},
+                {'value': 4, 'label': '15%(含)~20%', 'score': 4}
+            ]
+        },
+        {
+            'id': 12,
+            'question': '當投資發生虧損或達到停損點時會採取的處理方式',
+            'type': 'single',
+            'options': [
+                {'value': 1, 'label': '立即賣出', 'score': 1},
+                {'value': 2, 'label': '先賣出一半', 'score': 2},
+                {'value': 3, 'label': '虧損未達 6 個月就賣掉', 'score': 3},
+                {'value': 4, 'label': '虧損已經 6 個月以上才考慮出售', 'score': 4},
+                {'value': 5, 'label': '持有 1 年以上', 'score': 5},
+                {'value': 6, 'label': '持有至回本', 'score': 3}
             ]
         }
     ]
     
+    # 風險等級說明（金管會標準）
+    RISK_PROFILES = {
+        'conservative': {
+            'name': '保守型',
+            'description': '您屬於風險趨避者，通常期望避免投資本金之損失，但仍願意承受少量風險以增加投資報酬；投資主要為風險等級較低之商品。',
+            'suitable_rr': ['RR1', 'RR2'],
+            'suitable_rr_desc': '低風險(RR1)及中低風險(RR2)之投資標的'
+        },
+        'moderate': {
+            'name': '穩健型',
+            'description': '您屬於風險中立者，願意承擔部分風險以增加投資報酬；為了獲得提高投資報酬之機會，可以接受投資包含不同風險等級之商品。',
+            'suitable_rr': ['RR1', 'RR2', 'RR3'],
+            'suitable_rr_desc': '低風險(RR1)、中低風險(RR2)、中度風險(RR3)'
+        },
+        'aggressive': {
+            'name': '積極型',
+            'description': '您屬於風險追求者，願意承擔相當程度風險以增加投資報酬；可以接受將所有資金投資於風險較高之商品，藉以獲取較高投資報酬。',
+            'suitable_rr': ['RR1', 'RR2', 'RR3', 'RR4', 'RR5'],
+            'suitable_rr_desc': '可依個人需求選擇低風險(RR1)至高風險(RR5)的任何投資標的'
+        }
+    }
+    
     @classmethod
-    def get_questions(cls) -> List[Dict]:
-        """取得所有問卷題目"""
+    def get_questions(cls):
+        """取得所有問題"""
         return cls.QUESTIONS
     
     @classmethod
-    def calculate_risk_level(cls, answers: Dict[int, int]) -> Dict[str, Any]:
+    def calculate_risk_level(cls, answers: dict) -> dict:
         """
-        根據問卷回答計算風險等級
+        計算風險等級
         
         Args:
-            answers: {題號: 選項值} e.g., {1: 2, 2: 3, 3: 2, 4: 3, 5: 2}
+            answers: {1: 5, 2: [3, 5], 3: 3, ...} 
+                     單選題為單一值，複選題為列表
         
         Returns:
-            {
-                'score': 12,
-                'max_score': 20,
-                'risk_level': 'moderate',
-                'risk_level_name': '穩健型',
-                'description': '...'
-            }
+            包含分數和風險等級的字典
         """
-        # 計算總分 (每題 1-4 分，共 5 題，滿分 20)
-        total_score = sum(answers.values())
-        max_score = 20
+        total_score = 0
+        max_score = 0
+        details = []
         
-        # 判斷風險等級
-        if total_score <= 8:
-            risk_level = RiskLevel.CONSERVATIVE
-            name = '保守型'
-            description = '您傾向於保護本金，避免損失比追求高報酬更重要。建議以債券、定存等低風險資產為主。'
-        elif total_score <= 14:
-            risk_level = RiskLevel.MODERATE
-            name = '穩健型'
-            description = '您追求穩定成長，可以接受適度的市場波動。建議股債均衡配置。'
+        for question in cls.QUESTIONS:
+            q_id = question['id']
+            answer = answers.get(q_id) or answers.get(str(q_id))
+            
+            if answer is None:
+                continue
+            
+            question_score = 0
+            
+            if question['type'] == 'multiple':
+                # 複選題：取最高分
+                if isinstance(answer, list):
+                    for opt in question['options']:
+                        if opt['value'] in answer:
+                            question_score = max(question_score, opt['score'])
+                else:
+                    # 單一值也處理
+                    for opt in question['options']:
+                        if opt['value'] == answer:
+                            question_score = opt['score']
+                            break
+                max_score += max(opt['score'] for opt in question['options'])
+            else:
+                # 單選題
+                for opt in question['options']:
+                    if opt['value'] == answer:
+                        question_score = opt['score']
+                        break
+                max_score += max(opt['score'] for opt in question['options'])
+            
+            total_score += question_score
+            details.append({
+                'question_id': q_id,
+                'answer': answer,
+                'score': question_score
+            })
+        
+        # 計算百分比來判斷風險等級
+        # 最高分約 55 分，保守型 < 35%，穩健型 35-65%，積極型 > 65%
+        score_percent = (total_score / max_score * 100) if max_score > 0 else 0
+        
+        if score_percent < 35:
+            risk_level = 'conservative'
+        elif score_percent < 65:
+            risk_level = 'moderate'
         else:
-            risk_level = RiskLevel.AGGRESSIVE
-            name = '積極型'
-            description = '您追求較高報酬，可以承受較大的市場波動。建議以股票為主要配置。'
+            risk_level = 'aggressive'
+        
+        profile = cls.RISK_PROFILES[risk_level]
         
         return {
-            'score': total_score,
+            'total_score': total_score,
             'max_score': max_score,
-            'risk_level': risk_level.value,
-            'risk_level_name': name,
-            'description': description
+            'score_percent': round(score_percent, 1),
+            'risk_level': risk_level,
+            'risk_level_name': profile['name'],
+            'description': profile['description'],
+            'suitable_rr': profile['suitable_rr'],
+            'suitable_rr_desc': profile['suitable_rr_desc'],
+            'details': details
         }
+    
+    @classmethod
+    def get_risk_profiles(cls):
+        """取得所有風險等級說明"""
+        return cls.RISK_PROFILES
 
 
 # ============================================
@@ -500,20 +656,20 @@ class PortfolioAdvisor:
         warnings = []
         
         if amount < 10000:
-            warnings.append(" 投資金額較小，建議優先考慮 ETF 以降低單一股票風險")
+            warnings.append("⚠️ 投資金額較小，建議優先考慮 ETF 以降低單一股票風險")
         
         if amount > 1000000:
-            warnings.append(" 投資金額較大，建議分批進場以降低時點風險")
+            warnings.append("⚠️ 投資金額較大，建議分批進場以降低時點風險")
         
         stock_weight = sum(a.weight for a in allocations if a.asset_type == 'stocks')
         if stock_weight > 0.5:
-            warnings.append(" 股票配置超過 50%，請留意市場波動風險")
+            warnings.append("⚠️ 股票配置超過 50%，請留意市場波動風險")
         
         if risk == RiskLevel.AGGRESSIVE:
-            warnings.append(" 積極型配置可能面臨較大短期波動，建議有 3 年以上投資期間")
+            warnings.append("⚠️ 積極型配置可能面臨較大短期波動，建議有 3 年以上投資期間")
         
-        warnings.append(" 以上為系統建議，投資前請審慎評估個人財務狀況")
-        warnings.append(" 投資一定有風險，基金投資有賺有賠，申購前應詳閱公開說明書")
+        warnings.append("📋 以上為系統建議，投資前請審慎評估個人財務狀況")
+        warnings.append("📋 投資一定有風險，基金投資有賺有賠，申購前應詳閱公開說明書")
         
         return warnings
     

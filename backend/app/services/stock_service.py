@@ -10,6 +10,7 @@
 5. 股票搜尋功能
 6. 投資績效計算
 7. 風險評估與配置建議
+8. 非交易時間顯示收盤價
 """
 
 import ssl
@@ -38,7 +39,7 @@ import time
 
 
 # ============================================
-# 快取系統 (新增)
+# 快取系統
 # ============================================
 class StockCache:
     """
@@ -88,6 +89,7 @@ class StockService:
     - 美股：Yahoo Finance API
     - 快取機制
     - 限流機制
+    - 非交易時間顯示收盤價
     """
     
     def __init__(self):
@@ -130,109 +132,188 @@ class StockService:
     # 主要 API：取得即時股價
     # ==========================================
     def get_realtime_price(self, symbol: str) -> Dict[str, Any]:
-        """
-        取得即時股價（自動判斷台股/美股）
-        
-        Args:
-            symbol: 股票代碼
-                - 台股: '2330', '0050'
-                - 美股: 'AAPL', 'TSLA'
-        
-        Returns:
-            {
-                'symbol': '2330',
-                'name': '台積電',
-                'price': 1050.0,
-                'change': 15.0,
-                'change_percent': 1.45,
-                'high': 1055.0,
-                'low': 1040.0,
-                'open': 1045.0,
-                'volume': 25000000,
-                'timestamp': '2026-01-04 10:30:00',
-                'source': 'TWSE',
-                'success': True
-            }
-        """
-        # 1. 先檢查快取
+        """取得即時股價，非交易時間返回最近收盤價"""
+        # 檢查快取
         cached = self.cache.get(symbol)
         if cached:
             return cached
         
-        # 2. 判斷市場並取得報價
-        if self._is_tw_stock(symbol):
-            result = self._get_tw_stock_price(symbol)
-        else:
-            result = self._get_us_stock_price(symbol)
-        
-        # 3. 成功則存入快取
-        if result.get('success'):
-            self.cache.set(symbol, result)
-        
-        return result
+        try:
+            # 判斷是否為台股
+            if self._is_tw_stock(symbol):
+                result = self._get_tw_stock_price(symbol)
+            else:
+                result = self._get_us_stock_price(symbol)
+            
+            # 如果成功，存入快取
+            if result.get('success'):
+                self.cache.set(symbol, result)
+            
+            return result
+            
+        except Exception as e:
+            print(f"取得股價失敗 {symbol}: {e}")
+            return {'success': False, 'symbol': symbol, 'error': str(e)}
     
     # ==========================================
-    # 台股即時報價
+    # 台股股價（即時 + 收盤價備援）
     # ==========================================
     def _get_tw_stock_price(self, symbol: str) -> Dict[str, Any]:
-        """取得台股即時報價"""
+        """取得台股股價（即時 + 收盤價備援）"""
         try:
             # 限流
             self._rate_limit('TWSE', 1.7)
             
-            # 呼叫 twstock API
-            data = twstock.realtime.get(symbol)
+            # 方法 1: 嘗試即時報價
+            stock = twstock.realtime.get(symbol)
             
-            if not data or not data.get('success'):
-                return {
-                    'symbol': symbol,
-                    'success': False,
-                    'error': data.get('rtmessage', '無法取得資料') if data else '查無資料'
-                }
+            if stock and stock.get('success'):
+                realtime = stock.get('realtime', {})
+                info = stock.get('info', {})
+                
+                price = self._parse_price(realtime.get('latest_trade_price'))
+                
+                if price > 0:
+                    yesterday_close = self._parse_price(info.get('lastDayClose'))
+                    change = price - yesterday_close if yesterday_close else 0
+                    change_percent = (change / yesterday_close * 100) if yesterday_close else 0
+                    
+                    stock_info = twstock.codes.get(symbol)
+                    name = stock_info.name if stock_info else info.get('name', symbol)
+                    
+                    return {
+                        'success': True,
+                        'symbol': symbol,
+                        'name': name,
+                        'price': price,
+                        'change': round(change, 2),
+                        'change_percent': round(change_percent, 2),
+                        'high': self._parse_price(realtime.get('high')),
+                        'low': self._parse_price(realtime.get('low')),
+                        'open': self._parse_price(realtime.get('open')),
+                        'volume': int(realtime.get('accumulate_trade_volume', 0) or 0),
+                        'timestamp': realtime.get('latest_trade_time', ''),
+                        'source': 'realtime',
+                        'note': '即時報價'
+                    }
             
-            info = data.get('info', {})
-            realtime = data.get('realtime', {})
-            
-            # 解析價格
-            latest_price = self._parse_price(realtime.get('latest_trade_price'))
-            open_price = self._parse_price(realtime.get('open'))
-            high_price = self._parse_price(realtime.get('high'))
-            low_price = self._parse_price(realtime.get('low'))
-            yesterday_close = self._parse_price(info.get('lastDayClose'))
-            
-            # 計算漲跌
-            change = latest_price - yesterday_close if yesterday_close else 0
-            change_percent = (change / yesterday_close * 100) if yesterday_close else 0
-            
-            # 取得股票名稱
-            stock_info = twstock.codes.get(symbol)
-            name = stock_info.name if stock_info else info.get('name', symbol)
-            
-            return {
-                'symbol': symbol,
-                'name': name,
-                'price': latest_price,
-                'change': round(change, 2),
-                'change_percent': round(change_percent, 2),
-                'high': high_price,
-                'low': low_price,
-                'open': open_price,
-                'close': yesterday_close,
-                'volume': int(realtime.get('accumulate_trade_volume', 0) or 0),
-                'timestamp': realtime.get('latest_trade_time', ''),
-                'source': 'TWSE' if info.get('exchange') == 'TAI' else 'TPEX',
-                'success': True
-            }
+            # 方法 2: 即時報價失敗或為 0，取得歷史收盤價
+            return self._get_tw_closing_price(symbol)
             
         except Exception as e:
-            return {
-                'symbol': symbol,
-                'success': False,
-                'error': str(e)
-            }
+            print(f"台股即時報價失敗 {symbol}: {e}")
+            # 嘗試取得收盤價
+            return self._get_tw_closing_price(symbol)
+    
+    def _get_tw_closing_price(self, symbol: str) -> Dict[str, Any]:
+        """取得台股最近收盤價"""
+        try:
+            # 使用 twstock.Stock 取得歷史資料
+            stock = twstock.Stock(symbol)
+            
+            if stock.price and len(stock.price) > 0:
+                # 取得最近一天的收盤價
+                latest_price = stock.price[-1]
+                latest_date = stock.date[-1] if stock.date else None
+                
+                # 計算漲跌
+                change = 0
+                change_percent = 0
+                if len(stock.price) >= 2:
+                    prev_price = stock.price[-2]
+                    change = latest_price - prev_price
+                    change_percent = (change / prev_price * 100) if prev_price > 0 else 0
+                
+                # 取得股票名稱
+                stock_info = twstock.codes.get(symbol)
+                name = stock_info.name if stock_info else symbol
+                
+                return {
+                    'success': True,
+                    'symbol': symbol,
+                    'name': name,
+                    'price': float(latest_price),
+                    'change': round(change, 2),
+                    'change_percent': round(change_percent, 2),
+                    'source': 'closing',
+                    'date': latest_date.strftime('%Y-%m-%d') if latest_date else None,
+                    'note': '收盤價（非交易時間）'
+                }
+            
+            # 方法 3: 如果 twstock 都失敗，用 Yahoo Finance
+            return self._get_tw_stock_from_yahoo(symbol)
+            
+        except Exception as e:
+            print(f"取得收盤價失敗 {symbol}: {e}")
+            return self._get_tw_stock_from_yahoo(symbol)
+    
+    def _get_tw_stock_from_yahoo(self, symbol: str) -> Dict[str, Any]:
+        """從 Yahoo Finance 取得台股報價（備援方案）"""
+        try:
+            # 台股在 Yahoo Finance 的格式是 symbol.TW 或 symbol.TWO (上櫃)
+            yahoo_symbol = f"{symbol}.TW"
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}"
+            
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            response = requests.get(url, headers=headers, timeout=10, verify=False)
+            data = response.json()
+            
+            result = data.get('chart', {}).get('result', [])
+            if result:
+                meta = result[0].get('meta', {})
+                price = meta.get('regularMarketPrice', 0)
+                prev_close = meta.get('previousClose', 0)
+                
+                if price and price > 0:
+                    change = price - prev_close if prev_close else 0
+                    change_percent = (change / prev_close * 100) if prev_close > 0 else 0
+                    
+                    return {
+                        'success': True,
+                        'symbol': symbol,
+                        'name': meta.get('shortName', symbol),
+                        'price': float(price),
+                        'change': round(change, 2),
+                        'change_percent': round(change_percent, 2),
+                        'source': 'yahoo',
+                        'note': '資料來源: Yahoo Finance'
+                    }
+            
+            # 嘗試上櫃股票 (.TWO)
+            yahoo_symbol = f"{symbol}.TWO"
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}"
+            response = requests.get(url, headers=headers, timeout=10, verify=False)
+            data = response.json()
+            
+            result = data.get('chart', {}).get('result', [])
+            if result:
+                meta = result[0].get('meta', {})
+                price = meta.get('regularMarketPrice', 0)
+                prev_close = meta.get('previousClose', 0)
+                
+                if price and price > 0:
+                    change = price - prev_close if prev_close else 0
+                    change_percent = (change / prev_close * 100) if prev_close > 0 else 0
+                    
+                    return {
+                        'success': True,
+                        'symbol': symbol,
+                        'name': meta.get('shortName', symbol),
+                        'price': float(price),
+                        'change': round(change, 2),
+                        'change_percent': round(change_percent, 2),
+                        'source': 'yahoo',
+                        'note': '資料來源: Yahoo Finance'
+                    }
+            
+            return {'success': False, 'symbol': symbol, 'error': '無法取得股價'}
+            
+        except Exception as e:
+            print(f"Yahoo Finance 取得失敗 {symbol}: {e}")
+            return {'success': False, 'symbol': symbol, 'error': str(e)}
     
     # ==========================================
-    # 美股即時報價 (新增)
+    # 美股即時報價
     # ==========================================
     def _get_us_stock_price(self, symbol: str) -> Dict[str, Any]:
         """取得美股即時報價 (Yahoo Finance)"""
@@ -276,7 +357,7 @@ class StockService:
                 'volume': meta.get('regularMarketVolume', 0),
                 'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'currency': meta.get('currency', 'USD'),
-                'source': 'Yahoo Finance',
+                'source': 'yahoo',
                 'success': True
             }
             
@@ -309,24 +390,9 @@ class StockService:
         tw_symbols = [s for s in symbols if self._is_tw_stock(s)]
         us_symbols = [s for s in symbols if not self._is_tw_stock(s)]
         
-        # 台股批次查詢
-        if tw_symbols:
-            try:
-                self._rate_limit('TWSE', 1.7)
-                batch_data = twstock.realtime.get(tw_symbols)
-                
-                if isinstance(batch_data, dict):
-                    if 'success' in batch_data:
-                        # 單一股票回傳
-                        symbol = tw_symbols[0]
-                        results[symbol] = self._process_tw_realtime(symbol, batch_data)
-                    else:
-                        # 多股票回傳
-                        for symbol, data in batch_data.items():
-                            results[symbol] = self._process_tw_realtime(symbol, data)
-            except Exception as e:
-                for symbol in tw_symbols:
-                    results[symbol] = {'symbol': symbol, 'success': False, 'error': str(e)}
+        # 台股逐一查詢（使用新的備援機制）
+        for symbol in tw_symbols:
+            results[symbol] = self.get_realtime_price(symbol)
         
         # 美股逐一查詢
         for symbol in us_symbols:
@@ -337,16 +403,18 @@ class StockService:
     def _process_tw_realtime(self, symbol: str, data: Dict) -> Dict:
         """處理 twstock 回傳資料"""
         if not data or not data.get('success'):
-            return {
-                'symbol': symbol,
-                'success': False,
-                'error': data.get('rtmessage', '無資料') if data else '無資料'
-            }
+            # 嘗試取得收盤價
+            return self._get_tw_closing_price(symbol)
         
         info = data.get('info', {})
         realtime = data.get('realtime', {})
         
         latest_price = self._parse_price(realtime.get('latest_trade_price'))
+        
+        # 如果即時價格為 0，取得收盤價
+        if latest_price <= 0:
+            return self._get_tw_closing_price(symbol)
+        
         yesterday_close = self._parse_price(info.get('lastDayClose'))
         change = latest_price - yesterday_close if yesterday_close else 0
         change_percent = (change / yesterday_close * 100) if yesterday_close else 0
@@ -422,7 +490,7 @@ class StockService:
             return {'symbol': symbol, 'success': False, 'error': '查詢失敗'}
     
     # ==========================================
-    # 歷史資料 (新增)
+    # 歷史資料
     # ==========================================
     def get_historical_data(self, symbol: str, months: int = 3) -> List[Dict]:
         """
@@ -461,7 +529,7 @@ class StockService:
 
 
 # ============================================
-# 投資績效計算器 (保留原有)
+# 投資績效計算器
 # ============================================
 class PerformanceCalculator:
     """投資績效計算器"""
@@ -484,7 +552,7 @@ class PerformanceCalculator:
 
 
 # ============================================
-# 風險評估 (保留原有)
+# 風險評估
 # ============================================
 class RiskAssessment:
     """風險評估"""

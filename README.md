@@ -1,7 +1,7 @@
 # Personal Financial Management Platform
 # 個人財務管理平台 - 參考 Firefly III 開源架構設計
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![Version](https://img.shields.io/badge/version-1.3.0-blue)
 ![Python](https://img.shields.io/badge/Python-3.13-green)
 ![React](https://img.shields.io/badge/React-18-blue)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
@@ -10,20 +10,6 @@
 
 這是一個個人財務管理系統，幫助使用者追蹤日常收支、管理預算、設定財務目標、管理投資組合，並提供投資儲蓄智慧建議。
 
-這是一個個人財務管理系統，幫助使用者追蹤日常收支、管理預算、設定財務目標，並提供智慧建議。
-
-###  主要功能
-
-| 功能 | 說明 |
-|------|------|
-|  **財務總覽** | 即時顯示收入、支出、結餘統計 |
-|  **交易記錄** | 記錄每日收支，支援自動分類 |
-|  **智慧分類** | 根據關鍵字自動分類交易 |
-|  **預算管理** | 設定各類別預算，追蹤使用狀態 |
-|  **財務目標** | 管理短期/中期儲蓄目標 |
-|  **智慧建議** | 根據消費習慣提供動態調整建議 |
-
-##  技術棧
 ## 主要功能
 
 | 功能 | 說明 |
@@ -35,9 +21,13 @@
 | **財務目標** | 管理短期/中期儲蓄目標，含進度追蹤（落後/如期/超前判斷） |
 | **投資組合** | 股票/ETF 持倉管理、資產配置分析、即時報價 |
 | **配置建議** | 風險問卷評估 + 智慧投資組合配置建議 |
+| **財經新聞** | 自動抓取財經新聞，AI 摘要整理 |
+| **理財學習** | 理財知識庫，智慧搜尋 |
 | **智慧建議** | 根據消費習慣提供動態調整建議與量化方案 |
 
 ---
+
+## 投資組合功能
 
 ### 功能特色
 
@@ -63,34 +53,54 @@
 
 ---
 
+## 配置建議功能
+
 ### 功能特色
 
 | 功能 | 說明 |
 |------|------|
-| 風險問卷 | 5 題簡易問卷評估風險承受度 |
+| 風險問卷 | 12 題金管會標準問卷評估風險承受度 |
 | 風險等級 | 保守型 / 穩健型 / 積極型 三種等級 |
 | 智慧配置 | 根據風險等級、投資目標、年齡自動建議資產配置 |
 | 推薦標的 | 推薦具體台灣 ETF、股票、債券標的 |
+| 標的介紹 | 詳細說明每個推薦標的的特色與風險 |
+| 下一步指引 | 提供開戶、下單等操作指引與券商資訊 |
 | 快速配置 | 提供保守/平衡/成長三種預設模板 |
 | 預估殖利率 | 顯示各標的預估殖利率與總體預估報酬 |
 
-### 風險評估問卷
+### 風險評估問卷（符合金管會標準）
 
 | 題號 | 問題 |
 |------|------|
-| Q1 | 您的投資經驗有多長？ |
-| Q2 | 如果投資下跌 20%，您會？ |
-| Q3 | 預計這筆投資要持有多久？ |
-| Q4 | 這筆投資佔總資產的比例？ |
-| Q5 | 您對投資報酬的期望是？ |
+| Q1 | 您的年齡層？ |
+| Q2 | 您曾使用過的理財工具（可複選）？ |
+| Q3 | 投資債券類型相關商品之理財工具經驗？ |
+| Q4 | 投資其他非債券類型相關商品之理財工具經驗？ |
+| Q5 | 下列何者最符合您對投資理財工具的理解？ |
+| Q6 | 每年可用於購買投資理財工具之金額（新台幣）？ |
+| Q7 | 請問您的備用金（現金及存款）相當於您幾個月的生活開銷？ |
+| Q8 | 每年可承受的價格損失（含匯率風險）？ |
+| Q9 | 在達到預計投資期間時（例如 3 年、5 年），可承受的價格損失？ |
+| Q10 | 您的投資回報期望？ |
+| Q11 | 就長期投資而言，您期望每年平均投資報酬率？ |
+| Q12 | 當投資發生虧損或達到停損點時會採取的處理方式？ |
 
-### 風險等級對照
+### 風險等級對照（金管會標準）
 
-| 等級 | 分數 | 股票比例 | 債券比例 | 適合對象 |
-|------|------|----------|----------|----------|
-| 保守型 | 5-8 分 | 10-20% | 40-60% | 退休族、風險承受度低者 |
-| 穩健型 | 9-14 分 | 35-45% | 20-30% | 一般投資人、中長期投資 |
-| 積極型 | 15-20 分 | 55-70% | 10-15% | 年輕族群、風險承受度高者 |
+問卷共 12 題，滿分約 55 分，依得分百分比判定風險屬性：
+
+| 等級 | 得分比例 | 適合 RR 等級 | 股票比例 | 債券比例 | 適合對象 |
+|------|----------|--------------|----------|----------|----------|
+| 保守型 | < 35% | RR1, RR2 | 10-20% | 40-60% | 退休族、風險承受度低者 |
+| 穩健型 | 35-65% | RR1, RR2, RR3 | 35-45% | 20-30% | 一般投資人、中長期投資 |
+| 積極型 | > 65% | RR1-RR5 | 55-70% | 10-15% | 年輕族群、風險承受度高者 |
+
+**RR 風險報酬等級說明：**
+- **RR1**：低風險（如貨幣市場基金）
+- **RR2**：中低風險（如投資級債券）
+- **RR3**：中度風險（如平衡型基金）
+- **RR4**：中高風險（如股票型基金、ETF）
+- **RR5**：高風險（如單一國家/產業基金、衍生性商品）
 
 ### 投資目標
 
@@ -121,6 +131,23 @@
 ---
 
 ## API 端點
+
+### 基礎 API
+
+| 方法 | 端點 | 說明 |
+|------|------|------|
+| GET | `/api/accounts` | 取得所有帳戶 |
+| POST | `/api/accounts` | 建立新帳戶 |
+| GET | `/api/categories` | 取得所有分類 |
+| GET | `/api/transactions` | 取得交易記錄 |
+| POST | `/api/transactions` | 建立交易（自動分類）|
+| GET | `/api/transactions/summary` | 取得收支摘要 |
+| GET | `/api/budgets` | 取得預算列表 |
+| POST | `/api/budgets` | 建立新預算 |
+| GET | `/api/goals` | 取得財務目標 |
+| POST | `/api/goals` | 建立新目標 |
+| POST | `/api/goals/:id/add-money` | 存入金額 |
+| GET | `/api/suggestions` | 取得智慧建議 |
 
 ### 投資組合 API
 
@@ -160,6 +187,15 @@
 | GET | /api/portfolio/risk-profiles | 取得風險等級說明 |
 | GET | /api/portfolio/investment-goals | 取得投資目標選項 |
 | GET | /api/investment/health | API 健康檢查 |
+
+### 新聞 & 知識庫 API
+
+| 方法 | 端點 | 說明 |
+|------|------|------|
+| GET | /api/news | 取得財經新聞列表 |
+| GET | /api/news/:id | 取得單篇新聞詳情 |
+| GET | /api/knowledge | 取得理財知識文章 |
+| GET | /api/knowledge/search?q= | 搜尋知識庫 |
 
 ---
 
@@ -221,6 +257,7 @@
 - **Flask-CORS** - 跨域支援
 - **twstock** - 台股即時報價
 - **requests** - HTTP 請求（Yahoo Finance API）
+- **APScheduler** - 排程任務
 
 ### 前端 (Frontend)
 - **React 18** - UI 框架
@@ -229,29 +266,35 @@
 - **Axios** - HTTP 請求
 - **Recharts** - 圖表視覺化
 
-##  專案結構
+---
+
+## 專案結構
 
 ```
 bookkeeping/
 ├── backend/                 # 後端程式碼
 │   ├── app/
 │   │   ├── models/         # 資料模型
+│   │   │   ├── news_article.py      # 新聞文章模型
+│   │   │   └── knowledge_doc.py     # 知識文章模型
 │   │   ├── routes/         # API 路由
-│   │   └── services/       # 業務邏輯
-│   │   │   └── portfolio_routes.py  # 投資組合 API（含配置建議）
-│   │   └── services/
-│   │       ├── stock_service.py     # 股票服務（即時報價、快取）
-│   │       └── portfolio_advisor.py # 配置建議服務
+│   │   │   ├── portfolio_routes.py  # 投資組合 API
+│   │   │   ├── news_routes.py       # 新聞 API
+│   │   │   └── knowledge_routes.py  # 知識庫 API
+│   │   ├── services/       # 業務邏輯
+│   │   │   ├── stock_service.py     # 股票服務
+│   │   │   ├── portfolio_advisor.py # 配置建議服務
+│   │   │   ├── news_ingest_service.py    # 新聞抓取
+│   │   │   ├── news_summarize_service.py # 新聞摘要
+│   │   │   ├── knowledge_service.py # 知識庫服務
+│   │   │   └── scheduler_service.py # 排程服務
+│   │   └── utils/          # 工具函數
 │   ├── run.py              # 主程式入口
 │   ├── requirements.txt    # Python 依賴
 │   └── .env                # 環境變數
 │
 ├── frontend/               # 前端程式碼
 │   ├── src/
-│   │   ├── pages/         # 頁面元件
-│   │   ├── services/      # API 連接
-│   │   ├── App.jsx        # 主應用程式
-│   │   └── App.css        # 樣式
 │   │   ├── hooks/          # 自訂 Hooks
 │   │   │   └── useStockData.js     # 股票數據 Hook
 │   │   ├── components/     # 共用組件
@@ -259,13 +302,16 @@ bookkeeping/
 │   │   │   ├── RiskQuestionnaire.css
 │   │   │   ├── PortfolioAdvisor.jsx    # 配置建議組件
 │   │   │   └── PortfolioAdvisor.css
-│   │   ├── pages/
+│   │   ├── pages/          # 頁面元件
 │   │   │   ├── Dashboard.jsx    # 財務總覽
 │   │   │   ├── Transactions.jsx # 交易記錄
 │   │   │   ├── Budgets.jsx      # 預算管理
 │   │   │   ├── Goals.jsx        # 財務目標
-│   │   │   ├── Portfolio.jsx    # 投資組合（含配置建議）
-│   │   │   └── Portfolio.css
+│   │   │   ├── Portfolio.jsx    # 投資組合
+│   │   │   ├── News.jsx         # 財經新聞
+│   │   │   └── Learn.jsx        # 理財學習
+│   │   ├── services/       # API 連接
+│   │   │   └── api.js
 │   │   ├── App.jsx         # 主應用程式
 │   │   └── App.css         # 樣式
 │   └── package.json
@@ -273,7 +319,9 @@ bookkeeping/
 └── README.md
 ```
 
-##  快速開始
+---
+
+## 快速開始
 
 ### 前置需求
 
@@ -331,44 +379,7 @@ npm run dev
 
 前端將在 http://localhost:5173 運行
 
-##  API 端點
-
-| 方法 | 端點 | 說明 |
-|------|------|------|
-| GET | `/api/accounts` | 取得所有帳戶 |
-| POST | `/api/accounts` | 建立新帳戶 |
-| GET | `/api/categories` | 取得所有分類 |
-| GET | `/api/transactions` | 取得交易記錄 |
-| POST | `/api/transactions` | 建立交易（自動分類）|
-| GET | `/api/transactions/summary` | 取得收支摘要 |
-| GET | `/api/budgets` | 取得預算列表 |
-| POST | `/api/budgets` | 建立新預算 |
-| GET | `/api/goals` | 取得財務目標 |
-| POST | `/api/goals` | 建立新目標 |
-| POST | `/api/goals/:id/add-money` | 存入金額 |
-| GET | `/api/suggestions` | 取得智慧建議 |
-
-
-### 財務總覽
-- 本月收入/支出/結餘統計
-- 支出分類圓餅圖
-- 智慧建議面板
-
-### 交易記錄
-- 交易列表（日期、說明、分類、金額）
-- 新增交易表單
-- 自動分類功能
-
-### 預算管理
-- 預算卡片（進度條顯示使用率）
-- 超支/警告狀態提示
-
-### 財務目標
-- 目標進度追蹤
-- 存入金額功能
-- 優先級與截止日期
-
-##  環境變數
+---
 
 ## 環境變數
 
@@ -383,20 +394,83 @@ FLASK_ENV=development
 PORT=5005
 ```
 
-## 📚 參考資料
+---
 
-- [Firefly III](https://github.com/firefly-iii/firefly-iii) - 開源個人財務管理系統
-- [Flask Documentation](https://flask.palletsprojects.com/)
-- [React Documentation](https://react.dev/)
+## 功能截圖
 
-##  開發團隊
+### 財務總覽
+- 本月收入/支出/結餘統計
+- 支出分類圓餅圖
+- 智慧建議面板
 
-- 開發者：Emily
+### 投資組合
+- 本月投資支出/賣出收入/股息收入
+- 總市值與未實現損益
+- 資產配置圓餅圖
+- 最近交易記錄
+- 持倉明細（依資產類型分組）
+- 關注清單
+- 配置建議按鈕
 
-##  授權
+### 配置建議
+- 風險問卷評估（12題金管會標準）
+- 投資金額輸入（自由輸入）
+- 風險偏好選擇（保守/穩健/積極）
+- 投資目標選擇
+- 智慧配置建議結果
+- 推薦標的與配置比例
+- 推薦標的說明以及下一步動作
+- 預估殖利率
 
-MIT License
+### 財經新聞
+- 自動抓取最新財經新聞
+- AI 摘要整理
+
+### 理財學習
+- 理財知識庫
+- 智慧搜尋功能
 
 ---
 
-如果這個專案對你有幫助，請給我們一顆星！
+## 更新日誌
+
+### v1.3.0
+- 新增財經新聞功能（自動抓取、AI 摘要）
+- 新增理財學習知識庫
+- 新增排程服務
+
+### v1.2.0
+- 新增風險問卷評估功能（金管會 12 題標準）
+- 新增投資組合配置建議功能
+- 新增推薦標的詳細介紹與下一步指引
+- 新增 useStockData.js Hook
+- 新增 RiskQuestionnaire 組件
+- 新增 PortfolioAdvisor 組件
+- 股票服務增強：30秒快取、限流機制、美股支援、非交易時段收盤價
+- 新增配置建議相關 API 端點
+
+### v1.1.0 
+- 新增投資組合功能
+- 新增持倉管理、配息記錄
+- 新增台股即時報價（twstock）
+- 新增關注清單
+
+### v1.0.0
+- 初始版本
+- 財務總覽、交易記錄、預算管理、財務目標
+
+---
+
+## 參考資料
+
+- [Firefly III](https://www.firefly-iii.org/) - 開源個人財務管理系統
+- [Flask Documentation](https://flask.palletsprojects.com/)
+- [React Documentation](https://react.dev/)
+
+## 開發團隊
+
+- 開發者：Emily
+
+## 授權
+
+MIT License

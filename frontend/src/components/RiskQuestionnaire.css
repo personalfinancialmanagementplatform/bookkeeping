@@ -1,79 +1,82 @@
-/**
- * 風險評估問卷樣式
- */
-
- .risk-questionnaire {
-    background: white;
-    border-radius: 16px;
-    padding: 32px;
-    max-width: 800px;
-    margin: 0 auto;
+/* ==================== 問卷主容器 ==================== */
+.risk-questionnaire {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
   }
   
+  /* ==================== 載入與錯誤 ==================== */
+  .questionnaire-loading,
+  .questionnaire-error {
+    text-align: center;
+    padding: 40px 20px;
+    color: #7f8c8d;
+    font-size: 15px;
+  }
+  
+  .questionnaire-error {
+    color: #e74c3c;
+  }
+  
+  /* ==================== 問卷標題區 ==================== */
   .questionnaire-header {
     text-align: center;
-    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 20px;
   }
   
   .questionnaire-header h2 {
-    margin: 0 0 8px 0;
-    color: #333;
-    font-size: 24px;
+    font-size: 20px;
+    color: #2c3e50;
+    margin-bottom: 8px;
   }
   
   .questionnaire-header .subtitle {
-    color: #666;
-    margin: 0 0 24px 0;
-  }
-  
-  .progress-container {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    max-width: 400px;
-    margin: 0 auto;
+    font-size: 14px;
+    color: #7f8c8d;
+    margin-bottom: 16px;
   }
   
   .progress-bar {
-    flex: 1;
     height: 8px;
-    background: #e9ecef;
+    background: #ecf0f1;
     border-radius: 4px;
     overflow: hidden;
+    margin-bottom: 8px;
   }
   
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #3498db, #2ecc71);
+    background: #3498db;
     border-radius: 4px;
     transition: width 0.3s ease;
   }
   
   .progress-text {
-    font-size: 14px;
-    font-weight: 600;
-    color: #666;
-    min-width: 40px;
+    font-size: 13px;
+    color: #95a5a6;
   }
   
+  /* ==================== 問題容器 ==================== */
   .questions-container {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    margin-bottom: 32px;
+    flex: 1;
+    padding-bottom: 20px;
   }
   
+  /* ==================== 問題卡片 ==================== */
   .question-card {
     background: #f8f9fa;
+    border: 2px solid #e0e0e0;
     border-radius: 12px;
-    padding: 20px 24px;
-    border: 2px solid transparent;
-    transition: all 0.3s ease;
+    padding: 16px;
+    margin-bottom: 16px;
+    transition: all 0.2s;
   }
   
   .question-card.answered {
-    border-color: #2ecc71;
-    background: #f0fdf4;
+    border-color: #27ae60;
+    background: #f0fff4;
   }
   
   .question-number {
@@ -81,21 +84,37 @@
     background: #3498db;
     color: white;
     padding: 4px 12px;
-    border-radius: 20px;
+    border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+  }
+  
+  .question-type {
+    margin-left: 8px;
+    font-weight: normal;
+    opacity: 0.9;
   }
   
   .question-text {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 500;
-    color: #333;
-    margin-bottom: 16px;
+    color: #2c3e50;
+    margin-bottom: 10px;
     line-height: 1.5;
   }
   
-  .options {
+  .question-hint {
+    font-size: 12px;
+    color: #f39c12;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: #fef9e7;
+    border-radius: 6px;
+  }
+  
+  /* ==================== 選項列表 ==================== */
+  .options-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -104,16 +123,15 @@
   .option-btn {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 10px;
+    padding: 12px 14px;
     background: white;
-    border: 2px solid #e9ecef;
+    border: 1px solid #ddd;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
     text-align: left;
     width: 100%;
-    font-size: 14px;
   }
   
   .option-btn:hover {
@@ -123,36 +141,43 @@
   
   .option-btn.selected {
     border-color: #3498db;
-    background: #ebf5fb;
+    background: #e8f4fc;
   }
   
   .option-indicator {
-    font-size: 16px;
+    font-size: 18px;
     color: #3498db;
     flex-shrink: 0;
   }
   
-  .option-text {
-    color: #333;
+  .option-label {
+    font-size: 14px;
+    color: #2c3e50;
     line-height: 1.4;
   }
   
-  .questionnaire-actions {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #e9ecef;
+  /* ==================== 問卷底部 ==================== */
+  .questionnaire-footer {
+    background: white;
+    padding: 20px 0 0 0;
+    border-top: 1px solid #eee;
+    text-align: center;
+    margin-top: auto;
   }
   
   .btn {
     padding: 12px 24px;
+    border: none;
     border-radius: 8px;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
+    transition: all 0.2s;
+  }
+  
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
   
   .btn-primary {
@@ -160,163 +185,194 @@
     color: white;
   }
   
-  .btn-primary:hover {
+  .btn-primary:hover:not(:disabled) {
     background: #2980b9;
   }
   
-  .btn-primary:disabled {
-    background: #bdc3c7;
-    cursor: not-allowed;
-  }
-  
   .btn-secondary {
-    background: white;
-    color: #666;
-    border: 1px solid #ddd;
+    background: #ecf0f1;
+    color: #2c3e50;
   }
   
-  .btn-secondary:hover {
-    background: #f8f9fa;
-    color: #333;
+  .btn-secondary:hover:not(:disabled) {
+    background: #d5dbdb;
   }
   
-  /* 結果頁面 */
-  .result-container {
+  .btn-large {
+    padding: 14px 32px;
+    font-size: 16px;
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .hint-text {
+    color: #95a5a6;
+    font-size: 13px;
+    margin-top: 10px;
+  }
+  
+  .btn-text {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    color: #7f8c8d;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: color 0.2s;
+  }
+  
+  .btn-text:hover {
+    color: #3498db;
+  }
+  
+  /* ==================== 結果頁面 ==================== */
+  .questionnaire-result {
     text-align: center;
   }
   
-  .result-header h2 {
-    margin: 0 0 24px 0;
-    color: #333;
+  .questionnaire-result .result-header h2 {
+    font-size: 20px;
+    color: #2c3e50;
+    margin-bottom: 20px;
   }
   
   .result-card {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    border-radius: 16px;
-    padding: 32px;
-    margin-bottom: 32px;
-  }
-  
-  .result-card.risk-conservative {
-    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-  }
-  
-  .result-card.risk-moderate {
-    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-  }
-  
-  .result-card.risk-aggressive {
-    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
   }
   
   .result-score {
     margin-bottom: 16px;
   }
   
-  .score-value {
-    font-size: 48px;
-    font-weight: 700;
-    color: #333;
-  }
-  
-  .score-max {
-    font-size: 24px;
-    color: #666;
-  }
-  
-  .result-level {
-    margin-bottom: 16px;
-  }
-  
-  .level-label {
+  .score-label {
     display: block;
-    font-size: 14px;
-    color: #666;
+    font-size: 13px;
+    color: #7f8c8d;
     margin-bottom: 4px;
   }
   
-  .level-value {
-    font-size: 28px;
+  .score-value {
+    font-size: 36px;
     font-weight: 700;
-    color: #333;
+    color: #3498db;
+  }
+  
+  .score-max {
+    font-size: 18px;
+    color: #95a5a6;
+  }
+  
+  .result-level {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 30px;
+    margin-bottom: 16px;
+  }
+  
+  .result-level.conservative {
+    background: #d5f4e6;
+    color: #27ae60;
+  }
+  
+  .result-level.moderate {
+    background: #fef9e7;
+    color: #f39c12;
+  }
+  
+  .result-level.aggressive {
+    background: #fadbd8;
+    color: #e74c3c;
+  }
+  
+  .level-icon {
+    font-size: 24px;
+  }
+  
+  .level-name {
+    font-size: 18px;
+    font-weight: 600;
   }
   
   .result-description {
-    font-size: 15px;
+    font-size: 14px;
     color: #555;
     line-height: 1.6;
-    max-width: 500px;
-    margin: 0 auto;
+    margin-bottom: 20px;
+    text-align: left;
+    padding: 0 10px;
   }
   
-  .risk-scale {
-    position: relative;
-    margin-bottom: 32px;
-    padding: 0 20px;
+  .result-suitable {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: left;
   }
   
-  .scale-bar {
-    display: flex;
-    border-radius: 8px;
-    overflow: hidden;
-    height: 50px;
-  }
-  
-  .scale-section {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 8px;
-    color: white;
-    font-weight: 500;
+  .result-suitable h4 {
     font-size: 14px;
+    color: #2c3e50;
+    margin-bottom: 12px;
   }
   
-  .scale-section.conservative {
-    background: #27ae60;
+  .rr-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
   }
   
-  .scale-section.moderate {
-    background: #3498db;
+  .rr-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
   }
   
-  .scale-section.aggressive {
-    background: #e67e22;
-  }
+  .rr-badge.rr1 { background: #d5f4e6; color: #27ae60; }
+  .rr-badge.rr2 { background: #d6eaf8; color: #3498db; }
+  .rr-badge.rr3 { background: #fef9e7; color: #f39c12; }
+  .rr-badge.rr4 { background: #fdebd0; color: #e67e22; }
+  .rr-badge.rr5 { background: #fadbd8; color: #e74c3c; }
   
-  .score-range {
-    font-size: 11px;
-    opacity: 0.8;
-  }
-  
-  .scale-marker {
-    position: absolute;
-    top: -20px;
-    transform: translateX(-50%);
-    font-size: 20px;
-    color: #e74c3c;
-    transition: left 0.5s ease;
+  .rr-desc {
+    font-size: 13px;
+    color: #7f8c8d;
+    margin: 0;
   }
   
   .result-actions {
     display: flex;
+    gap: 12px;
     justify-content: center;
-    gap: 16px;
   }
   
+  /* ==================== RWD ==================== */
   @media (max-width: 600px) {
-    .risk-questionnaire {
-      padding: 20px;
+    .questionnaire-header h2 {
+      font-size: 18px;
     }
     
-    .questionnaire-actions,
+    .question-text {
+      font-size: 14px;
+    }
+    
+    .option-label {
+      font-size: 13px;
+    }
+    
     .result-actions {
       flex-direction: column;
     }
     
-    .btn {
+    .result-actions .btn {
       width: 100%;
     }
   }
