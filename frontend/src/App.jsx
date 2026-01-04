@@ -3,6 +3,7 @@ import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Budgets from './pages/Budgets';
 import Goals from './pages/Goals';
+import Portfolio from './pages/Portfolio';
 import Learn from './pages/Learn';
 import News from './pages/News';
 import './App.css';
@@ -38,12 +39,17 @@ function App() {
               </NavLink>
             </li>
             <li>
-              <NavLink to="/learn" className={({ isActive }) => (isActive ? 'active' : '')}>
+              <NavLink to="/portfolio" className={({ isActive }) => isActive ? 'active' : ''}>
+                📈 投資組合
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/learn" className={({ isActive }) => isActive ? 'active' : ''}>
                 📚 金融知識
               </NavLink>
             </li>
             <li>
-              <NavLink to="/news" className={({ isActive }) => (isActive ? 'active' : '')}>
+              <NavLink to="/news" className={({ isActive }) => isActive ? 'active' : ''}>
                 📰 新聞新知
               </NavLink>
             </li>
@@ -57,6 +63,7 @@ function App() {
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/budgets" element={<Budgets />} />
             <Route path="/goals" element={<Goals />} />
+            <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/learn" element={<Learn />} />
             <Route path="/news" element={<News />} />
           </Routes>

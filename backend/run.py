@@ -140,16 +140,19 @@ def create_app():
     # =========================
     # 新增：註冊 blueprint + scheduler
     # =========================
-    from app.routes import news_bp, knowledge_bp
+    from app.routes import news_bp, knowledge_bp, portfolio_bp
+    from app.routes.portfolio_routes import init_portfolio_routes
     from app.services.scheduler_service import init_scheduler
 
     def register_extra(app):
-        app.register_blueprint(news_bp)
-        app.register_blueprint(knowledge_bp)
+     app.register_blueprint(news_bp)
+     app.register_blueprint(knowledge_bp)
+     app.register_blueprint(portfolio_bp)
+    init_portfolio_routes(db)
 
-        # 開發時你也可以先不啟動 scheduler，等 ingest 跑通再開
-        if RSS_URLS:
-            init_scheduler(app, rss_urls=RSS_URLS)
+    # 開發時你也可以先不啟動 scheduler，等 ingest 跑通再開
+    if RSS_URLS:
+        init_scheduler(app, rss_urls=RSS_URLS)
 
     register_extra(app)
 
