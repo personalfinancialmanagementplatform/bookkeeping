@@ -1,2 +1,16 @@
+# macOS
+.DS_Store
+
+# Java build output
+*.class
+bin/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Env files
+.env
+backend/.env
 __pycache__/
 *.pyc

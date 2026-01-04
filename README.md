@@ -10,6 +10,20 @@
 
 這是一個個人財務管理系統，幫助使用者追蹤日常收支、管理預算、設定財務目標、管理投資組合，並提供投資儲蓄智慧建議。
 
+這是一個個人財務管理系統，幫助使用者追蹤日常收支、管理預算、設定財務目標，並提供智慧建議。
+
+###  主要功能
+
+| 功能 | 說明 |
+|------|------|
+|  **財務總覽** | 即時顯示收入、支出、結餘統計 |
+|  **交易記錄** | 記錄每日收支，支援自動分類 |
+|  **智慧分類** | 根據關鍵字自動分類交易 |
+|  **預算管理** | 設定各類別預算，追蹤使用狀態 |
+|  **財務目標** | 管理短期/中期儲蓄目標 |
+|  **智慧建議** | 根據消費習慣提供動態調整建議 |
+
+##  技術棧
 ## 主要功能
 
 | 功能 | 說明 |
@@ -212,17 +226,18 @@
 - **React 18** - UI 框架
 - **Vite** - 建置工具
 - **React Router** - 路由管理
+- **Axios** - HTTP 請求
 - **Recharts** - 圖表視覺化
 
----
+##  專案結構
 
-## 專案結構
 ```
 bookkeeping/
 ├── backend/                 # 後端程式碼
 │   ├── app/
 │   │   ├── models/         # 資料模型
 │   │   ├── routes/         # API 路由
+│   │   └── services/       # 業務邏輯
 │   │   │   └── portfolio_routes.py  # 投資組合 API（含配置建議）
 │   │   └── services/
 │   │       ├── stock_service.py     # 股票服務（即時報價、快取）
@@ -233,6 +248,10 @@ bookkeeping/
 │
 ├── frontend/               # 前端程式碼
 │   ├── src/
+│   │   ├── pages/         # 頁面元件
+│   │   ├── services/      # API 連接
+│   │   ├── App.jsx        # 主應用程式
+│   │   └── App.css        # 樣式
 │   │   ├── hooks/          # 自訂 Hooks
 │   │   │   └── useStockData.js     # 股票數據 Hook
 │   │   ├── components/     # 共用組件
@@ -254,28 +273,30 @@ bookkeeping/
 └── README.md
 ```
 
----
-
-## 快速開始
+##  快速開始
 
 ### 前置需求
+
 - Python 3.10+
 - Node.js 18+
 - PostgreSQL 15+
 
 ### 1. Clone 專案
+
 ```bash
-git clone https://github.com/emily200008/bookkeeping.git
+git clone https://github.com/personalfinancialmanagementplatform/bookkeeping.git
 cd bookkeeping
 ```
 
 ### 2. 設定資料庫
+
 ```sql
 -- 在 PostgreSQL 建立資料庫
 CREATE DATABASE bookkeeping;
 ```
 
 ### 3. 啟動後端
+
 ```bash
 cd backend
 
@@ -293,9 +314,11 @@ cp .env.example .env
 # 啟動伺服器
 python run.py
 ```
+
 後端將在 http://localhost:5005 運行
 
 ### 4. 啟動前端
+
 ```bash
 cd frontend
 
@@ -305,9 +328,47 @@ npm install
 # 啟動開發伺服器
 npm run dev
 ```
+
 前端將在 http://localhost:5173 運行
 
----
+##  API 端點
+
+| 方法 | 端點 | 說明 |
+|------|------|------|
+| GET | `/api/accounts` | 取得所有帳戶 |
+| POST | `/api/accounts` | 建立新帳戶 |
+| GET | `/api/categories` | 取得所有分類 |
+| GET | `/api/transactions` | 取得交易記錄 |
+| POST | `/api/transactions` | 建立交易（自動分類）|
+| GET | `/api/transactions/summary` | 取得收支摘要 |
+| GET | `/api/budgets` | 取得預算列表 |
+| POST | `/api/budgets` | 建立新預算 |
+| GET | `/api/goals` | 取得財務目標 |
+| POST | `/api/goals` | 建立新目標 |
+| POST | `/api/goals/:id/add-money` | 存入金額 |
+| GET | `/api/suggestions` | 取得智慧建議 |
+
+
+### 財務總覽
+- 本月收入/支出/結餘統計
+- 支出分類圓餅圖
+- 智慧建議面板
+
+### 交易記錄
+- 交易列表（日期、說明、分類、金額）
+- 新增交易表單
+- 自動分類功能
+
+### 預算管理
+- 預算卡片（進度條顯示使用率）
+- 超支/警告狀態提示
+
+### 財務目標
+- 目標進度追蹤
+- 存入金額功能
+- 優先級與截止日期
+
+##  環境變數
 
 ## 環境變數
 
@@ -322,78 +383,20 @@ FLASK_ENV=development
 PORT=5005
 ```
 
----
+## 📚 參考資料
 
-## 功能截圖
-
-### 財務總覽
-- 本月收入/支出/結餘統計
-- 支出分類圓餅圖
-- 智慧建議面板
-
-### 投資組合
-- 本月投資支出/賣出收入/股息收入
-- 總市值與未實現損益
-- 資產配置圓餅圖
-- 最近交易記錄
-- 持倉明細（依資產類型分組）
-- 關注清單
-- 配置建議按鈕
-
-### 配置建議
-- 風險問卷評估（5題）
-- 投資金額輸入（預設快捷鍵）
-- 風險偏好選擇（保守/穩健/積極）
-- 投資目標選擇
-- 智慧配置建議結果
-- 推薦標的與配置比例
-- 預估殖利率
-
----
-
-## 更新日誌
-
-### v1.2.0
-- 新增風險問卷評估功能
-- 新增投資組合配置建議功能
-- 新增 useStockData.js Hook
-- 新增 RiskQuestionnaire 組件
-- 新增 PortfolioAdvisor 組件
-- 股票服務增強：30秒快取、限流機制、美股支援
-- 新增配置建議相關 API 端點
-
-### v1.1.0 
-- 新增投資組合功能
-- 新增持倉管理、配息記錄
-- 新增台股即時報價（twstock）
-- 新增關注清單
-
-### v1.0.0
-- 初始版本
-- 財務總覽、交易記錄、預算管理、財務目標
-
----
-
-## 參考資料
-
-- [Firefly III](https://www.firefly-iii.org/) - 開源個人財務管理系統
+- [Firefly III](https://github.com/firefly-iii/firefly-iii) - 開源個人財務管理系統
 - [Flask Documentation](https://flask.palletsprojects.com/)
-- [React Documentation](https://reactjs.org/)
-- [twstock](https://github.com/mlouielu/twstock) - 台灣股票資料庫
-- [Yahoo Finance API](https://finance.yahoo.com/)
+- [React Documentation](https://react.dev/)
 
----
+##  開發團隊
 
-## 開發團隊
+- 開發者：Emily
 
-開發者：Emily
-
----
-
-## 授權
+##  授權
 
 MIT License
 
 ---
 
-⭐ 如果這個專案對你有幫助，請給我們一顆星！
+如果這個專案對你有幫助，請給我們一顆星！

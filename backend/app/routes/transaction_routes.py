@@ -5,6 +5,7 @@ Transaction API 路由
 
 from flask import Blueprint, request, jsonify
 from app.database import db
+print("transaction_routes db id =", id(db))
 from app.models.transaction import Transaction
 from datetime import datetime
 
