@@ -1,6 +1,7 @@
 /**
  * 投資組合配置建議組件
  * 功能：風險問卷評估、配置建議、標的介紹、下單指引
+ * 更新：加入自訂投資標的功能
  */
 
 import React, { useState, useEffect } from 'react';
@@ -184,6 +185,24 @@ const BROKER_INFO = [
   }
 ];
 
+// 熱門標的快速選擇（用於自訂標的）
+const POPULAR_ASSETS = [
+  { symbol: '0050', name: '元大台灣50', type: 'etf' },
+  { symbol: '0056', name: '元大高股息', type: 'etf' },
+  { symbol: '00878', name: '國泰永續高股息', type: 'etf' },
+  { symbol: '00919', name: '群益台灣精選高息', type: 'etf' },
+  { symbol: '00929', name: '復華台灣科技優息', type: 'etf' },
+  { symbol: '006208', name: '富邦台50', type: 'etf' },
+  { symbol: '2330', name: '台積電', type: 'stock' },
+  { symbol: '2317', name: '鴻海', type: 'stock' },
+  { symbol: '2454', name: '聯發科', type: 'stock' },
+  { symbol: '2382', name: '廣達', type: 'stock' },
+  { symbol: '2881', name: '富邦金', type: 'stock' },
+  { symbol: '2882', name: '國泰金', type: 'stock' },
+  { symbol: '00679B', name: '元大美債20年', type: 'bond' },
+  { symbol: '00687B', name: '國泰20年美債', type: 'bond' },
+];
+
 const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
   // 狀態管理
   const [step, setStep] = useState('method');
@@ -195,12 +214,19 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
   const [error, setError] = useState(null);
   const [expandedAsset, setExpandedAsset] = useState(null);
   const [showBrokerInfo, setShowBrokerInfo] = useState(false);
+  
+  // 新增：自訂投資標的相關狀態
+  const [customAssets, setCustomAssets] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [age, setAge] = useState('');
 
   // 風險等級選項
   const riskOptions = [
-    { value: 'conservative', label: '🛡️ 保守型', desc: '追求穩定，低風險' },
+    { value: 'conservative', label: '🛡️ 保守型', desc: '追求穩定收益，降低波動' },
     { value: 'moderate', label: '⚖️ 穩健型', desc: '平衡成長與風險' },
-    { value: 'aggressive', label: '🚀 積極型', desc: '追求高報酬，可承受高風險' }
+    { value: 'aggressive', label: '🚀 積極型', desc: '追求較高資本成長' }
   ];
 
   // 投資目標選項
@@ -210,6 +236,56 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
     { value: 'income', label: '💰 穩定收益', desc: '股息現金流' },
     { value: 'preservation', label: '🔒 資產保值', desc: '抵抗通膨' }
   ];
+
+  // 搜尋標的
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+    if (query.length < 1) {
+      setSearchResults([]);
+      setShowSearchDropdown(false);
+      return;
+    }
+
+    // 先從本地熱門標的搜尋
+    const localResults = POPULAR_ASSETS.filter(
+      asset => asset.symbol.includes(query.toUpperCase()) || 
+               asset.name.includes(query)
+    );
+
+    if (localResults.length > 0) {
+      setSearchResults(localResults.slice(0, 8));
+      setShowSearchDropdown(true);
+      return;
+    }
+
+    // 如果本地沒有，可以呼叫 API 搜尋
+    try {
+      const response = await fetch(`${API_BASE}/stocks/search?q=${encodeURIComponent(query)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.slice(0, 8));
+        setShowSearchDropdown(true);
+      }
+    } catch (err) {
+      setSearchResults(localResults);
+      setShowSearchDropdown(localResults.length > 0);
+    }
+  };
+
+  // 新增自訂標的
+  const addCustomAsset = (asset) => {
+    if (!customAssets.find(a => a.symbol === asset.symbol)) {
+      setCustomAssets([...customAssets, asset]);
+    }
+    setSearchQuery('');
+    setSearchResults([]);
+    setShowSearchDropdown(false);
+  };
+
+  // 移除自訂標的
+  const removeCustomAsset = (symbol) => {
+    setCustomAssets(customAssets.filter(a => a.symbol !== symbol));
+  };
 
   // 取得配置建議
   const getRecommendation = async () => {
@@ -229,7 +305,9 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
           amount: parseFloat(amount),
           risk_level: riskLevel,
           goal: investmentGoal,
-          existing_holdings: existingHoldings
+          existing_holdings: existingHoldings,
+          custom_assets: customAssets.map(a => a.symbol),
+          age: age ? parseInt(age) : null
         })
       });
 
@@ -281,7 +359,9 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
     const labels = {
       'etf': 'ETF',
       'stocks': '股票',
+      'stock': '股票',
       'bonds': '債券',
+      'bond': '債券',
       'cash': '現金'
     };
     return labels[type] || type;
@@ -292,7 +372,9 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
     const colors = {
       'etf': '#3498db',
       'stocks': '#e74c3c',
+      'stock': '#e74c3c',
       'bonds': '#27ae60',
+      'bond': '#27ae60',
       'cash': '#95a5a6'
     };
     return colors[type] || '#666';
@@ -385,7 +467,7 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
     </div>
   );
 
-  // 渲染步驟 3：輸入金額
+  // 渲染步驟 3：輸入金額（含自訂標的功能）
   const renderAmountStep = () => (
     <div className="advisor-step">
       <h3>💰 設定投資金額</h3>
@@ -414,8 +496,102 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
           <p className="error-hint">⚠️ 最低投資金額為 1,000 元</p>
         )}
         <p className="amount-display">
-          NT$ {Number(amount).toLocaleString()}
+          = NT$ {Number(amount).toLocaleString()}
         </p>
+      </div>
+
+      {/* 自訂投資標的區塊 */}
+      <div className="form-section custom-assets-section">
+        <label>自訂投資標的 (選填)</label>
+        <p className="section-hint">加入您想要的股票或 ETF，系統將優先納入配置</p>
+        
+        {/* 搜尋框 */}
+        <div className="search-container">
+          <input
+            type="text"
+            className="search-input"
+            placeholder="搜尋股票代號或名稱..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            onFocus={() => searchResults.length > 0 && setShowSearchDropdown(true)}
+            onBlur={() => setTimeout(() => setShowSearchDropdown(false), 200)}
+          />
+          
+          {/* 搜尋結果下拉選單 */}
+          {showSearchDropdown && searchResults.length > 0 && (
+            <div className="search-dropdown">
+              {searchResults.map((result) => (
+                <div
+                  key={result.symbol}
+                  className="search-item"
+                  onClick={() => addCustomAsset(result)}
+                >
+                  <span className="search-item-symbol">{result.symbol}</span>
+                  <span className="search-item-name">{result.name}</span>
+                  <span 
+                    className="search-item-type"
+                    style={{ backgroundColor: getAssetTypeColor(result.type) }}
+                  >
+                    {getAssetTypeLabel(result.type)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 熱門標的快速選擇 */}
+        <div className="popular-assets">
+          <span className="popular-label">熱門：</span>
+          {POPULAR_ASSETS.slice(0, 6).map((asset) => (
+            <button
+              key={asset.symbol}
+              className={`popular-tag ${customAssets.find(a => a.symbol === asset.symbol) ? 'selected' : ''}`}
+              onClick={() => addCustomAsset(asset)}
+              disabled={customAssets.find(a => a.symbol === asset.symbol)}
+            >
+              {asset.symbol}
+            </button>
+          ))}
+        </div>
+
+        {/* 已選擇的標的 */}
+        {customAssets.length > 0 && (
+          <div className="selected-assets">
+            <span className="selected-label">已選擇：</span>
+            <div className="selected-list">
+              {customAssets.map((asset) => (
+                <span key={asset.symbol} className="selected-tag">
+                  <span 
+                    className="tag-type-dot"
+                    style={{ backgroundColor: getAssetTypeColor(asset.type) }}
+                  ></span>
+                  {asset.symbol} {asset.name}
+                  <button 
+                    className="remove-btn"
+                    onClick={() => removeCustomAsset(asset.symbol)}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 年齡輸入 */}
+      <div className="form-section age-section">
+        <label>年齡 (選填，用於微調風險建議)</label>
+        <input
+          type="number"
+          className="age-input"
+          value={age}
+          onChange={(e) => setAge(e.target.value)}
+          min="18"
+          max="100"
+          placeholder="例如: 35"
+        />
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -462,15 +638,24 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
           </div>
         </div>
 
+        {/* 顯示自訂標的是否被納入 */}
+        {customAssets.length > 0 && (
+          <div className="custom-assets-notice">
+            <span className="notice-icon">✨</span>
+            <span>已將您選擇的 {customAssets.length} 檔標的優先納入配置</span>
+          </div>
+        )}
+
         {/* 資產配置列表 */}
         <div className="allocation-list">
           <h4>📋 建議標的明細（點擊展開詳情）</h4>
           {recommendation.allocations?.map((item, index) => {
             const details = ASSET_DETAILS[item.symbol];
             const isExpanded = expandedAsset === item.symbol;
+            const isCustom = customAssets.find(a => a.symbol === item.symbol);
             
             return (
-              <div key={index} className={`allocation-item ${isExpanded ? 'expanded' : ''}`}>
+              <div key={index} className={`allocation-item ${isExpanded ? 'expanded' : ''} ${isCustom ? 'is-custom' : ''}`}>
                 <div 
                   className="allocation-main"
                   onClick={() => setExpandedAsset(isExpanded ? null : item.symbol)}
@@ -483,7 +668,10 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
                       {getAssetTypeLabel(item.asset_type)}
                     </span>
                     <div className="asset-info">
-                      <span className="asset-symbol">{item.symbol}</span>
+                      <span className="asset-symbol">
+                        {item.symbol}
+                        {isCustom && <span className="custom-badge">自選</span>}
+                      </span>
                       <span className="asset-name">{item.name}</span>
                     </div>
                   </div>
@@ -519,12 +707,10 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
                           {details.riskLevel}
                         </span>
                       </div>
-
                       <div className="detail-row">
                         <span className="detail-label">最低投資</span>
                         <span className="detail-value">{details.minInvestment}</span>
                       </div>
-
                       <div className="detail-row">
                         <span className="detail-label">預估殖利率</span>
                         <span className="detail-value highlight">{item.expected_yield}%</span>
@@ -538,7 +724,6 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
                   </div>
                 )}
 
-                {/* 沒有詳細資料時顯示基本理由 */}
                 {isExpanded && !details && (
                   <div className="allocation-details">
                     <div className="detail-reason">
@@ -561,31 +746,28 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
               <span className="step-number">1</span>
               <div className="step-content">
                 <h5>開立證券戶</h5>
-                <p>如果您還沒有證券帳戶，請先到券商開戶。建議選擇有定期定額功能的券商，方便長期投資。</p>
+                <p>如果您還沒有證券帳戶，請先到券商開戶。建議選擇有定期定額功能的券商。</p>
               </div>
             </div>
-
             <div className="guide-step">
               <span className="step-number">2</span>
               <div className="step-content">
                 <h5>入金到交割帳戶</h5>
-                <p>將資金轉入綁定的銀行交割帳戶，台股採用 T+2 交割制度，買進後第二個營業日扣款。</p>
+                <p>將資金轉入綁定的銀行交割帳戶，台股採用 T+2 交割制度。</p>
               </div>
             </div>
-
             <div className="guide-step">
               <span className="step-number">3</span>
               <div className="step-content">
                 <h5>下單買進</h5>
-                <p>透過券商 App 或網頁下單。建議使用「定期定額」分批買進，降低進場時機風險。</p>
+                <p>透過券商 App 或網頁下單。建議使用「定期定額」分批買進。</p>
               </div>
             </div>
-
             <div className="guide-step">
               <span className="step-number">4</span>
               <div className="step-content">
                 <h5>定期檢視與再平衡</h5>
-                <p>每季或每半年檢視投資組合，必要時進行再平衡以維持目標配置比例。</p>
+                <p>每季或每半年檢視投資組合，必要時進行再平衡。</p>
               </div>
             </div>
           </div>
@@ -605,12 +787,7 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
                   <div key={index} className="broker-card">
                     <div className="broker-header">
                       <h5>{broker.name}</h5>
-                      <a 
-                        href={broker.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="broker-link"
-                      >
+                      <a href={broker.url} target="_blank" rel="noopener noreferrer" className="broker-link">
                         前往官網 →
                       </a>
                     </div>
