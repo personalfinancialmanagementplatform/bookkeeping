@@ -285,6 +285,9 @@ function Portfolio() {
 
       {/* 頂部統計卡片 */}
       <div className="stats-row">
+
+      {/* 頂部統計卡片 */}
+      <div className="stats-row">
         <div className="stat-card-h">
           <span className="stat-icon">💰</span>
           <div className="stat-content">
@@ -666,7 +669,6 @@ function Portfolio() {
           </div>
         </div>
       )}
-
       {/* 新增關注 Modal */}
       {showWatchlistModal && (
         <div className="modal-overlay" onClick={() => setShowWatchlistModal(false)}>
@@ -712,4 +714,5 @@ function Portfolio() {
   );
 }
 
+export default Portfolio;
 export default Portfolio;
