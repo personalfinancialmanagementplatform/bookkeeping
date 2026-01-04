@@ -8,6 +8,7 @@
 3. 根據投資目標調整配置
 4. 推薦具體標的（台灣 ETF、個股、債券）
 5. 自動計算投資金額分配
+6. 支援自訂投資標的優先納入配置
 """
 
 from typing import Dict, List, Any, Optional
@@ -490,7 +491,8 @@ class PortfolioAdvisor:
         risk_level: str = 'moderate',
         goal: str = 'wealth_growth',
         age: Optional[int] = None,
-        existing_holdings: Optional[List[Dict]] = None
+        existing_holdings: Optional[List[Dict]] = None,
+        custom_assets: Optional[List[str]] = None  # 新增：自訂標的
     ) -> AllocationResult:
         """
         產生投資組合配置建議
@@ -501,6 +503,7 @@ class PortfolioAdvisor:
             goal: 投資目標
             age: 年齡（用於微調）
             existing_holdings: 現有持倉（避免重複推薦）
+            custom_assets: 自訂標的代號列表（優先納入配置）
         
         Returns:
             AllocationResult 完整配置建議
@@ -521,9 +524,15 @@ class PortfolioAdvisor:
         # 4. 根據目標微調
         base_allocation = self._adjust_by_goal(base_allocation, goal)
         
-        # 5. 選擇具體標的
+        # 5. 選擇具體標的（加入 custom_assets）
         existing_symbols = {h.get('symbol') for h in (existing_holdings or [])}
-        allocations = self._select_assets(amount, base_allocation, risk, existing_symbols)
+        allocations = self._select_assets(
+            amount, 
+            base_allocation, 
+            risk, 
+            existing_symbols,
+            custom_assets or []  # 新增
+        )
         
         # 6. 計算預估總殖利率
         total_yield = sum(a.weight * a.expected_yield for a in allocations)
@@ -583,10 +592,47 @@ class PortfolioAdvisor:
         amount: float,
         allocation_weights: Dict[str, float],
         risk: RiskLevel,
-        existing_symbols: set
+        existing_symbols: set,
+        custom_assets: List[str] = None  # 新增參數
     ) -> List[AssetAllocation]:
         """選擇具體投資標的"""
         allocations = []
+        custom_assets = custom_assets or []
+        
+        # === 新增：優先處理自訂標的 ===
+        custom_weight_used = 0
+        if custom_assets:
+            # 從所有標的中找出自訂的
+            all_assets = []
+            for asset_type, assets in self.RECOMMENDED_ASSETS.items():
+                for asset in assets:
+                    asset_copy = asset.copy()
+                    asset_copy['asset_type'] = asset_type
+                    all_assets.append(asset_copy)
+            
+            # 每個自訂標的分配權重（最多佔 50%）
+            custom_per_weight = min(0.15, 0.5 / len(custom_assets))
+            
+            for symbol in custom_assets:
+                # 找到該標的資訊
+                asset_info = next((a for a in all_assets if a['symbol'] == symbol), None)
+                if asset_info:
+                    custom_amount = amount * custom_per_weight
+                    allocations.append(AssetAllocation(
+                        asset_type=asset_info.get('asset_type', 'etf'),
+                        symbol=symbol,
+                        name=asset_info['name'],
+                        weight=round(custom_per_weight, 4),
+                        amount=round(custom_amount, 0),
+                        reason=f"您指定的標的：{asset_info.get('description', '')}",
+                        expected_yield=asset_info.get('yield', 5.0)
+                    ))
+                    custom_weight_used += custom_per_weight
+                    existing_symbols.add(symbol)  # 避免重複選
+        
+        # 調整剩餘權重
+        remaining_weight = 1 - custom_weight_used
+        # === 自訂標的處理結束 ===
         
         risk_filter = {
             RiskLevel.CONSERVATIVE: ['conservative'],
@@ -596,10 +642,13 @@ class PortfolioAdvisor:
         allowed_risks = risk_filter.get(risk, ['moderate'])
         
         for asset_type, weight in allocation_weights.items():
-            if weight <= 0.01:
+            # 調整權重（扣除自訂標的佔用的部分）
+            adjusted_weight = weight * remaining_weight
+            
+            if adjusted_weight <= 0.01:
                 continue
             
-            asset_amount = amount * weight
+            asset_amount = amount * adjusted_weight
             
             # 現金部位
             if asset_type == 'cash':
@@ -607,7 +656,7 @@ class PortfolioAdvisor:
                     asset_type='cash',
                     symbol='CASH',
                     name='現金 / 貨幣基金',
-                    weight=weight,
+                    weight=adjusted_weight,
                     amount=round(asset_amount, 0),
                     reason='保持流動性，作為緊急預備金或等待投資機會',
                     expected_yield=1.5
@@ -620,17 +669,20 @@ class PortfolioAdvisor:
             # 根據風險等級過濾
             filtered = [c for c in candidates if c['risk'] in allowed_risks]
             
-            # 排除已持有
+            # 排除已持有和已選的自訂標的
             filtered = [c for c in filtered if c['symbol'] not in existing_symbols]
             
             if not filtered:
-                filtered = candidates[:2]
+                filtered = [c for c in candidates if c['symbol'] not in existing_symbols][:2]
+            
+            if not filtered:
+                continue
             
             # 選擇 1-2 檔分散風險
             num_assets = min(2, len(filtered)) if asset_amount >= 30000 else 1
             selected = filtered[:num_assets]
             
-            per_asset_weight = weight / num_assets
+            per_asset_weight = adjusted_weight / num_assets
             per_asset_amount = asset_amount / num_assets
             
             for asset in selected:

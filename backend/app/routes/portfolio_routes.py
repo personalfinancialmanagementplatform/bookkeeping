@@ -882,12 +882,16 @@ def get_portfolio_recommendation():
         if amount > 100000000:
             return jsonify({'error': '投資金額超出範圍'}), 400
         
+        # 新增：接收自訂標的
+        custom_assets = data.get('custom_assets', [])
+        
         recommendation = portfolio_advisor.generate_recommendation(
             amount=float(amount),
             risk_level=data.get('risk_level', 'moderate'),
             goal=data.get('goal', 'wealth_growth'),
             age=data.get('age'),
-            existing_holdings=data.get('existing_holdings', [])
+            existing_holdings=data.get('existing_holdings', []),
+            custom_assets=custom_assets  # 新增
         )
         
         return jsonify(portfolio_advisor.to_dict(recommendation))
