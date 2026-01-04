@@ -1,0 +1,619 @@
+/**
+ * 投資組合配置建議樣式
+ */
+
+ .portfolio-advisor {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  
+  .close-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: #f0f0f0;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .close-btn:hover {
+    background: #e0e0e0;
+    color: #333;
+  }
+  
+  /* 輸入頁面 */
+  .input-container {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  
+  .advisor-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  
+  .advisor-header h2 {
+    margin: 0 0 8px 0;
+    font-size: 26px;
+    color: #333;
+  }
+  
+  .advisor-header .subtitle {
+    color: #666;
+    margin: 0;
+    font-size: 15px;
+  }
+  
+  /* 表單區塊 */
+  .form-section {
+    margin-bottom: 28px;
+  }
+  
+  .form-label {
+    display: block;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 15px;
+  }
+  
+  .form-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .questionnaire-link {
+    background: none;
+    border: none;
+    color: #3498db;
+    cursor: pointer;
+    font-size: 13px;
+    text-decoration: underline;
+  }
+  
+  .questionnaire-link:hover {
+    color: #2980b9;
+  }
+  
+  .form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    font-size: 16px;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+  
+  .form-input:focus {
+    outline: none;
+    border-color: #3498db;
+  }
+  
+  .amount-input {
+    font-size: 20px;
+    font-weight: 600;
+  }
+  
+  .age-input {
+    max-width: 200px;
+  }
+  
+  /* 金額快捷鍵 */
+  .amount-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .amount-presets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  .preset-btn {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .preset-btn:hover {
+    border-color: #3498db;
+    color: #3498db;
+  }
+  
+  .preset-btn.active {
+    background: #3498db;
+    border-color: #3498db;
+    color: white;
+  }
+  
+  /* 風險選項 */
+  .risk-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  
+  .risk-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  
+  .risk-option:hover {
+    border-color: var(--risk-color, #3498db);
+  }
+  
+  .risk-option.selected {
+    border-color: var(--risk-color, #3498db);
+    background: linear-gradient(to bottom, white, rgba(52, 152, 219, 0.05));
+  }
+  
+  .risk-option.selected .risk-icon {
+    transform: scale(1.2);
+  }
+  
+  .risk-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    transition: transform 0.2s;
+  }
+  
+  .risk-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+  }
+  
+  .risk-desc {
+    font-size: 12px;
+    color: #888;
+  }
+  
+  /* 目標選項 */
+  .goal-options {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  
+  .goal-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .goal-option:hover {
+    border-color: #3498db;
+  }
+  
+  .goal-option.selected {
+    border-color: #3498db;
+    background: #ebf5fb;
+  }
+  
+  .goal-icon {
+    font-size: 24px;
+    margin-bottom: 6px;
+  }
+  
+  .goal-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+  }
+  
+  /* 表單按鈕 */
+  .form-actions {
+    margin-top: 32px;
+    text-align: center;
+  }
+  
+  .btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .btn-lg {
+    padding: 16px 40px;
+    font-size: 17px;
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(52, 152, 219, 0.4);
+  }
+  
+  .btn-primary:disabled {
+    background: #bdc3c7;
+    box-shadow: none;
+    transform: none;
+    cursor: not-allowed;
+  }
+  
+  .btn-secondary {
+    background: white;
+    border: 2px solid #ddd;
+    color: #666;
+  }
+  
+  .btn-secondary:hover {
+    border-color: #999;
+    color: #333;
+  }
+  
+  /* 快速配置 */
+  .quick-section {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #e9ecef;
+    text-align: center;
+  }
+  
+  .quick-label {
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  
+  .quick-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+  
+  .quick-btn {
+    padding: 10px 20px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+  
+  .quick-btn:hover {
+    border-color: #3498db;
+    color: #3498db;
+  }
+  
+  .quick-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  /* 錯誤訊息 */
+  .error-message {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: #fdecea;
+    border-radius: 8px;
+    color: #c0392b;
+    text-align: center;
+  }
+  
+  /* 結果頁面 */
+  .result-container {
+    max-width: 850px;
+    margin: 0 auto;
+  }
+  
+  .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  
+  .result-header h2 {
+    margin: 0;
+    color: #333;
+  }
+  
+  .reconfigure-btn {
+    background: none;
+    border: none;
+    color: #3498db;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  
+  .reconfigure-btn:hover {
+    text-decoration: underline;
+  }
+  
+  /* 摘要卡片 */
+  .summary-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 24px 28px;
+    color: white;
+    margin-bottom: 28px;
+  }
+  
+  .summary-row {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 16px;
+  }
+  
+  .summary-item {
+    text-align: center;
+  }
+  
+  .summary-label {
+    display: block;
+    font-size: 13px;
+    opacity: 0.85;
+    margin-bottom: 4px;
+  }
+  
+  .summary-value {
+    font-size: 22px;
+    font-weight: 700;
+  }
+  
+  .summary-value.highlight {
+    color: #ffd700;
+  }
+  
+  .summary-text {
+    font-size: 14px;
+    line-height: 1.6;
+    opacity: 0.9;
+    text-align: center;
+  }
+  
+  /* 圖表區塊 */
+  .chart-section {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  
+  .chart-section h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .simple-pie-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .pie-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: white;
+    border-radius: 8px;
+  }
+  
+  .pie-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  
+  .pie-name {
+    font-weight: 500;
+    color: #333;
+    min-width: 60px;
+  }
+  
+  .pie-value {
+    flex: 1;
+    text-align: right;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .pie-percent {
+    color: #888;
+    font-size: 13px;
+    min-width: 60px;
+    text-align: right;
+  }
+  
+  /* 配置明細 */
+  .allocations-section {
+    margin-bottom: 24px;
+  }
+  
+  .allocations-section h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .allocations-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  
+  .allocation-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid #e9ecef;
+  }
+  
+  .allocation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  
+  .type-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  
+  .weight {
+    font-weight: 700;
+    color: #333;
+    font-size: 16px;
+  }
+  
+  .allocation-body {
+    margin-bottom: 10px;
+  }
+  
+  .symbol {
+    font-size: 18px;
+    font-weight: 700;
+    color: #333;
+  }
+  
+  .name {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 4px;
+  }
+  
+  .amount {
+    font-size: 16px;
+    font-weight: 600;
+    color: #3498db;
+  }
+  
+  .allocation-reason {
+    font-size: 12px;
+    color: #888;
+    padding-top: 10px;
+    border-top: 1px solid #e9ecef;
+    line-height: 1.5;
+  }
+  
+  .expected-yield {
+    font-size: 12px;
+    color: #27ae60;
+    margin-top: 8px;
+  }
+  
+  /* 警示 */
+  .warnings-section {
+    background: #fef9e7;
+    border: 1px solid #f9e79f;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+  }
+  
+  .warnings-section h4 {
+    margin: 0 0 10px 0;
+    color: #b7950b;
+    font-size: 14px;
+  }
+  
+  .warnings-section ul {
+    margin: 0;
+    padding-left: 20px;
+  }
+  
+  .warnings-section li {
+    color: #7d6608;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 4px;
+  }
+  
+  /* 結果按鈕 */
+  .result-actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+  }
+  
+  /* RWD */
+  @media (max-width: 768px) {
+    .portfolio-advisor {
+      padding: 20px;
+    }
+    
+    .risk-options {
+      grid-template-columns: 1fr;
+    }
+    
+    .goal-options {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .summary-row {
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .allocations-list {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  @media (max-width: 600px) {
+    .quick-buttons {
+      flex-direction: column;
+    }
+    
+    .result-actions {
+      flex-direction: column;
+    }
+    
+    .btn {
+      width: 100%;
+    }
+  }

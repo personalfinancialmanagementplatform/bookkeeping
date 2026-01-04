@@ -1,0 +1,322 @@
+/**
+ * 風險評估問卷樣式
+ */
+
+ .risk-questionnaire {
+    background: white;
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .questionnaire-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  
+  .questionnaire-header h2 {
+    margin: 0 0 8px 0;
+    color: #333;
+    font-size: 24px;
+  }
+  
+  .questionnaire-header .subtitle {
+    color: #666;
+    margin: 0 0 24px 0;
+  }
+  
+  .progress-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  .progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3498db, #2ecc71);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  
+  .progress-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    min-width: 40px;
+  }
+  
+  .questions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  
+  .question-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px 24px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+  }
+  
+  .question-card.answered {
+    border-color: #2ecc71;
+    background: #f0fdf4;
+  }
+  
+  .question-number {
+    display: inline-block;
+    background: #3498db;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  
+  .question-text {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .option-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+    font-size: 14px;
+  }
+  
+  .option-btn:hover {
+    border-color: #3498db;
+    background: #f8f9fa;
+  }
+  
+  .option-btn.selected {
+    border-color: #3498db;
+    background: #ebf5fb;
+  }
+  
+  .option-indicator {
+    font-size: 16px;
+    color: #3498db;
+    flex-shrink: 0;
+  }
+  
+  .option-text {
+    color: #333;
+    line-height: 1.4;
+  }
+  
+  .questionnaire-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e9ecef;
+  }
+  
+  .btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+  }
+  
+  .btn-primary {
+    background: #3498db;
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background: #2980b9;
+  }
+  
+  .btn-primary:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+  }
+  
+  .btn-secondary {
+    background: white;
+    color: #666;
+    border: 1px solid #ddd;
+  }
+  
+  .btn-secondary:hover {
+    background: #f8f9fa;
+    color: #333;
+  }
+  
+  /* 結果頁面 */
+  .result-container {
+    text-align: center;
+  }
+  
+  .result-header h2 {
+    margin: 0 0 24px 0;
+    color: #333;
+  }
+  
+  .result-card {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 32px;
+  }
+  
+  .result-card.risk-conservative {
+    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  }
+  
+  .result-card.risk-moderate {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  }
+  
+  .result-card.risk-aggressive {
+    background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  }
+  
+  .result-score {
+    margin-bottom: 16px;
+  }
+  
+  .score-value {
+    font-size: 48px;
+    font-weight: 700;
+    color: #333;
+  }
+  
+  .score-max {
+    font-size: 24px;
+    color: #666;
+  }
+  
+  .result-level {
+    margin-bottom: 16px;
+  }
+  
+  .level-label {
+    display: block;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 4px;
+  }
+  
+  .level-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: #333;
+  }
+  
+  .result-description {
+    font-size: 15px;
+    color: #555;
+    line-height: 1.6;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  
+  .risk-scale {
+    position: relative;
+    margin-bottom: 32px;
+    padding: 0 20px;
+  }
+  
+  .scale-bar {
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 50px;
+  }
+  
+  .scale-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 8px;
+    color: white;
+    font-weight: 500;
+    font-size: 14px;
+  }
+  
+  .scale-section.conservative {
+    background: #27ae60;
+  }
+  
+  .scale-section.moderate {
+    background: #3498db;
+  }
+  
+  .scale-section.aggressive {
+    background: #e67e22;
+  }
+  
+  .score-range {
+    font-size: 11px;
+    opacity: 0.8;
+  }
+  
+  .scale-marker {
+    position: absolute;
+    top: -20px;
+    transform: translateX(-50%);
+    font-size: 20px;
+    color: #e74c3c;
+    transition: left 0.5s ease;
+  }
+  
+  .result-actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+  }
+  
+  @media (max-width: 600px) {
+    .risk-questionnaire {
+      padding: 20px;
+    }
+    
+    .questionnaire-actions,
+    .result-actions {
+      flex-direction: column;
+    }
+    
+    .btn {
+      width: 100%;
+    }
+  }
