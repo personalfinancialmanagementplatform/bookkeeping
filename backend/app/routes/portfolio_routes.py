@@ -7,6 +7,9 @@ from sqlalchemy import text
 from datetime import datetime, date
 import json
 
+# 新增：配置建議服務
+from app.services.portfolio_advisor import portfolio_advisor, RiskQuestionnaire
+
 portfolio_bp = Blueprint('portfolio', __name__)
 
 # db 會在 run.py 中設定
@@ -736,3 +739,250 @@ def get_holding_dividends(holding_id):
           
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    # ============================================
+# 即時股價 API (增強版)
+# ============================================
+
+@portfolio_bp.route('/api/stocks/quotes', methods=['POST'])
+def get_stock_quotes():
+    """批次取得多檔股票即時報價"""
+    try:
+        from app.services.stock_service import stock_service
+        
+        data = request.get_json() or {}
+        symbols = data.get('symbols', [])
+        
+        if not symbols:
+            return jsonify({'error': '請提供股票代碼列表'}), 400
+        
+        if len(symbols) > 20:
+            return jsonify({'error': '一次最多查詢 20 檔股票'}), 400
+        
+        results = stock_service.get_batch_prices(symbols)
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@portfolio_bp.route('/api/stocks/info/<symbol>', methods=['GET'])
+def get_stock_info(symbol):
+    """取得股票基本資訊"""
+    try:
+        from app.services.stock_service import stock_service
+        
+        result = stock_service.get_stock_info(symbol)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@portfolio_bp.route('/api/holdings/refresh-prices', methods=['POST'])
+def refresh_holdings_prices():
+    """更新持倉的即時股價"""
+    try:
+        from app.services.stock_service import stock_service
+        
+        data = request.get_json() or {}
+        symbols = data.get('symbols', [])
+        
+        if not symbols:
+            return jsonify({'updated': [], 'failed': [], 'timestamp': datetime.now().isoformat()})
+        
+        results = stock_service.get_batch_prices(symbols)
+        
+        updated = []
+        failed = []
+        
+        for symbol, price_data in results.items():
+            if price_data.get('success'):
+                updated.append({
+                    'symbol': symbol,
+                    'name': price_data.get('name'),
+                    'price': price_data.get('price'),
+                    'change': price_data.get('change'),
+                    'change_percent': price_data.get('change_percent')
+                })
+            else:
+                failed.append({
+                    'symbol': symbol,
+                    'error': price_data.get('error', '未知錯誤')
+                })
+        
+        return jsonify({
+            'updated': updated,
+            'failed': failed,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================
+# 風險問卷 API (新增)
+# ============================================
+
+@portfolio_bp.route('/api/risk-assessment/questions', methods=['GET'])
+def get_risk_questions():
+    """取得風險評估問卷題目"""
+    try:
+        questions = RiskQuestionnaire.get_questions()
+        return jsonify({
+            'questions': questions,
+            'total_questions': len(questions)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@portfolio_bp.route('/api/risk-assessment/calculate', methods=['POST'])
+def calculate_risk_level():
+    """計算風險等級"""
+    try:
+        data = request.get_json() or {}
+        answers_raw = data.get('answers', {})
+        
+        if not answers_raw:
+            return jsonify({'error': '請提供問卷答案'}), 400
+        
+        # 轉換 key 為整數
+        try:
+            answers = {int(k): int(v) for k, v in answers_raw.items()}
+        except:
+            return jsonify({'error': '答案格式錯誤'}), 400
+        
+        if len(answers) < 5:
+            return jsonify({'error': '請完成所有題目'}), 400
+        
+        result = RiskQuestionnaire.calculate_risk_level(answers)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================
+# 配置建議 API (新增)
+# ============================================
+
+@portfolio_bp.route('/api/portfolio/recommend', methods=['POST'])
+def get_portfolio_recommendation():
+    """取得投資組合配置建議"""
+    try:
+        data = request.get_json() or {}
+        
+        amount = data.get('amount')
+        if not amount:
+            return jsonify({'error': '請提供投資金額'}), 400
+        
+        if amount < 1000:
+            return jsonify({'error': '最低投資金額為 1,000 元'}), 400
+        
+        if amount > 100000000:
+            return jsonify({'error': '投資金額超出範圍'}), 400
+        
+        recommendation = portfolio_advisor.generate_recommendation(
+            amount=float(amount),
+            risk_level=data.get('risk_level', 'moderate'),
+            goal=data.get('goal', 'wealth_growth'),
+            age=data.get('age'),
+            existing_holdings=data.get('existing_holdings', [])
+        )
+        
+        return jsonify(portfolio_advisor.to_dict(recommendation))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@portfolio_bp.route('/api/portfolio/quick-recommend', methods=['GET'])
+def get_quick_recommendation():
+    """快速配置建議（預設模板）"""
+    try:
+        amount = request.args.get('amount', 100000, type=float)
+        profile = request.args.get('profile', 'balanced')
+        
+        if amount < 1000:
+            return jsonify({'error': '最低投資金額為 1,000 元'}), 400
+        
+        result = portfolio_advisor.get_quick_allocation(amount, profile)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@portfolio_bp.route('/api/portfolio/risk-profiles', methods=['GET'])
+def get_risk_profiles():
+    """取得所有風險等級說明"""
+    profiles = {
+        'conservative': {
+            'name': '保守型',
+            'description': '追求穩定收益，降低波動風險',
+            'stock_range': '10-20%',
+            'bond_range': '40-60%',
+            'suitable_for': '退休族、風險承受度低者',
+            'expected_return': '3-5%',
+            'max_drawdown': '5-10%'
+        },
+        'moderate': {
+            'name': '穩健型',
+            'description': '平衡成長與風險',
+            'stock_range': '35-45%',
+            'bond_range': '20-30%',
+            'suitable_for': '一般投資人、中長期投資',
+            'expected_return': '5-8%',
+            'max_drawdown': '10-20%'
+        },
+        'aggressive': {
+            'name': '積極型',
+            'description': '追求較高資本成長',
+            'stock_range': '55-70%',
+            'bond_range': '10-15%',
+            'suitable_for': '年輕族群、風險承受度高者',
+            'expected_return': '8-12%',
+            'max_drawdown': '20-35%'
+        }
+    }
+    return jsonify(profiles)
+
+
+@portfolio_bp.route('/api/portfolio/investment-goals', methods=['GET'])
+def get_investment_goals():
+    """取得所有投資目標選項"""
+    goals = {
+        'retirement': {
+            'name': '退休規劃',
+            'description': '長期穩定增長，適合 10 年以上投資期',
+            'recommended_risk': 'moderate'
+        },
+        'wealth_growth': {
+            'name': '財富增長',
+            'description': '追求資本增值，適合 5-10 年投資期',
+            'recommended_risk': 'moderate'
+        },
+        'income': {
+            'name': '穩定收益',
+            'description': '追求固定現金流，股息收入為主',
+            'recommended_risk': 'conservative'
+        },
+        'preservation': {
+            'name': '資產保值',
+            'description': '抵抗通膨，保護購買力',
+            'recommended_risk': 'conservative'
+        }
+    }
+    return jsonify(goals)
+
+
+# ============================================
+# 健康檢查
+# ============================================
+
+@portfolio_bp.route('/api/investment/health', methods=['GET'])
+def investment_health_check():
+    """API 健康檢查"""
+    return jsonify({
+        'status': 'ok',
+        'timestamp': datetime.now().isoformat(),
+        'services': {
+            'stock_service': 'ok',
+            'portfolio_advisor': 'ok'
+        }
+    })
