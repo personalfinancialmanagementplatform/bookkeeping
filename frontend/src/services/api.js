@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5005/api';
+const API_BASE_URL = 'http://localhost:5006/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -30,10 +30,9 @@ export const transactionsAPI = {
 
 // 預算 API
 export const budgetsAPI = {
-    getAll: () => api.get('/budgets'),
-    create: (data) => api.post('/budgets', data),
-    delete: (id) => api.delete(`/budgets/${id}`),
-  };
+  getAll: () => api.get('/budgets'),
+  create: (data) => api.post('/budgets', data),
+};
 
 // 目標 API
 export const goalsAPI = {
@@ -47,4 +46,30 @@ export const suggestionsAPI = {
   get: () => api.get('/suggestions'),
 };
 
+// 新聞 API
+export const newsAPI = {
+  // GET /api/news/today?limit=20
+  getToday: (limit = 20) => api.get('/news/today', { params: { limit } }),
+
+  // GET /api/news/query?q=台積電&limit=20
+  query: (q, limit = 20) => api.get('/news/query', { params: { q, limit } }),
+
+  // POST /api/news/:id/summarize
+  summarize: (id) => api.post(`/news/${id}/summarize`),
+
+  // POST /api/news/ingest
+  ingest: (rss_urls) => api.post('/news/ingest', { rss_urls }),
+};
+
+// 金融知識 API
+export const knowledgeAPI = {
+  // GET /api/knowledge?limit=50&category=投資&difficulty=入門&q=ETF
+  getAll: (params = {}) => api.get('/knowledge', { params }),
+
+  // POST /api/knowledge
+  create: (data) => api.post('/knowledge', data),
+
+  // DELETE /api/knowledge/:id
+  remove: (id) => api.delete(`/knowledge/${id}`),
+};
 export default api;

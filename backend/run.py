@@ -16,32 +16,7 @@ Personal Financial Management Platform
    - 計算各目標達成進度，提供清楚的進度報告
    - 根據使用者可支配金額與消費習慣生成可行策略
 """
-from flask import Flask
-from flask_cors import CORS
 
-app = Flask(__name__)
-
-# 完整的 CORS 設定
-CORS(app, resources={
-    r"/api/*": {
-        "origins": ["http://localhost:5173"],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
-    }
-})
-
-# 手動處理 OPTIONS 請求
-@app.before_request
-def handle_preflight():
-    from flask import request
-    if request.method == "OPTIONS":
-        from flask import make_response
-        response = make_response()
-        response.headers.add("Access-Control-Allow-Origin", "http://localhost:5173")
-        response.headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        return response
-    
 import os
 import sys
 from datetime import datetime, timedelta
@@ -67,7 +42,7 @@ load_dotenv()
 class Base(DeclarativeBase):
     pass
 
-db = SQLAlchemy(model_class=Base)
+from app.database import db
 
 def get_database_url():
     """建立資料庫連接 URL"""
@@ -86,95 +61,98 @@ def get_database_url():
 # 關鍵字分類對照表 (參考 Firefly III Rules Engine)
 # ========================================
 KEYWORD_CATEGORY_MAP = {
-    # 食物飲料 (1)
+    # 食物飲料
     '早餐': 1, '午餐': 1, '晚餐': 1, '飲料': 1, '咖啡': 1, '星巴克': 1,
     '麥當勞': 1, '肯德基': 1, '便當': 1, '小吃': 1, '餐廳': 1, '外送': 1,
     'ubereats': 1, 'foodpanda': 1, '超市': 1, '全聯': 1, '7-11': 1,
     
-    # 交通 (2)
+    # 交通
     '捷運': 2, '公車': 2, '計程車': 2, 'uber': 2, '高鐵': 2, '火車': 2,
     '加油': 2, '停車': 2, '機車': 2, '汽車': 2, 'youbike': 2,
     
-    # 購物 (3)
+    # 購物
     '衣服': 3, '鞋子': 3, '包包': 3, '網購': 3, 'pchome': 3, 'momo': 3,
     '蝦皮': 3, '百貨': 3, 'uniqlo': 3, 'zara': 3,
     
-    # 娛樂 (4)
+    # 娛樂
     '電影': 4, '遊戲': 4, 'netflix': 4, 'spotify': 4, '演唱會': 4,
     'ktv': 4, '書': 4, '漫畫': 4,
     
-    # 帳單 (5)
+    # 帳單
     '電費': 5, '水費': 5, '瓦斯': 5, '網路': 5, '手機': 5, '電話費': 5,
     '房租': 5, '管理費': 5,
     
-    # 醫療 (6)
+    # 醫療
     '看診': 6, '醫院': 6, '診所': 6, '藥': 6, '牙醫': 6, '健檢': 6,
     
-    # 教育 (7)
+    # 教育
     '學費': 7, '課程': 7, '補習': 7, '書籍': 7, '文具': 7,
-    
-    # 生活必需 (37) - 新增
-    '衛生紙': 37, '洗衣精': 37, '沐浴乳': 37, '洗髮精': 37, '牙膏': 37,
-    '日用品': 37, '生活用品': 37, '家用': 37, '清潔': 37, '廚房': 37,
-    
-    # 投資支出 (38) - 新增
-    '股票': 38, '基金': 38, '定存': 38, 'etf': 38, '投資': 38,
-    '證券': 38, '期貨': 38, '外幣': 38,
     
     # 收入關鍵字
     '薪水': 9, '薪資': 9, '工資': 9, '獎金': 9,
     '股利': 10, '利息': 10, '投資收益': 10,
-    '兼職': 11, '接案': 11, '外快': 11,'家教': 11,
+    '兼職': 11, '接案': 11, '外快': 11,
 }
 
-# 金額區間分類（當關鍵字無法判斷時使用）
-AMOUNT_CATEGORY_RULES = [
-    (20, 80, 1),      # 20-80 元 → 食物飲料（飲料、小點心）
-    (80, 200, 1),     # 80-200 元 → 食物飲料（正餐）
-    (15, 50, 2),      # 15-50 元 → 交通（捷運、公車）
-]
-
-def auto_categorize(description, amount=None):
+def auto_categorize(description):
     """
     自動分類功能 (參考 Firefly III Rules Engine)
-    分類邏輯優先順序：
-    1. 關鍵字比對
-    2. 金額區間判斷
-    3. 歷史紀錄相似度（TODO: 需要 app context）
+    透過關鍵字、歷史數據進行分類
     """
     description_lower = description.lower()
     
-    # 1. 關鍵字比對
     for keyword, category_id in KEYWORD_CATEGORY_MAP.items():
         if keyword in description_lower:
             return category_id
-    
-    # 2. 金額區間判斷
-    if amount is not None:
-        for min_amt, max_amt, category_id in AMOUNT_CATEGORY_RULES:
-            if min_amt <= amount <= max_amt:
-                return category_id
     
     return None  # 無法自動分類
 
 # ========================================
 # 建立 Flask App
 # ========================================
+
 def create_app():
+    
     app = Flask(__name__)
+    RSS_URLS = [
+        "https://tw.stock.yahoo.com/rss?category=news",              # 最新新聞
+        "https://tw.stock.yahoo.com/rss?category=tw-market",         # 台股動態
+        "https://tw.stock.yahoo.com/rss?category=intl-markets",      # 國際財經
+
+    ]
+
+    app.config["RSS_URLS"] = RSS_URLS
     
     # 設定
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
     app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url()
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JSON_AS_ASCII'] = False  # 支援中文顯示
+
     
     # 啟用 CORS
-
-    CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]}})
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    
     # 初始化資料庫
     db.init_app(app)
-    
+    print("run.py db id =", id(db))
+
+    # =========================
+    # 新增：註冊 blueprint + scheduler
+    # =========================
+    from app.routes import news_bp, knowledge_bp
+    from app.services.scheduler_service import init_scheduler
+
+    def register_extra(app):
+        app.register_blueprint(news_bp)
+        app.register_blueprint(knowledge_bp)
+
+        # 開發時你也可以先不啟動 scheduler，等 ingest 跑通再開
+        if RSS_URLS:
+            init_scheduler(app, rss_urls=RSS_URLS)
+
+    register_extra(app)
+
     
     # 首頁路由
     
@@ -387,7 +365,7 @@ def create_app():
         # 自動分類功能
         category_id = data.get('category_id')
         if not category_id:
-            category_id = auto_categorize(data['description'], data.get('amount'))
+            category_id = auto_categorize(data['description'])
             if not category_id:
                 # 預設分類：其他支出(8) 或 其他收入(12)
                 category_id = 8 if data['type'] == 'expense' else 12
@@ -436,29 +414,13 @@ def create_app():
         """
         取得交易摘要
         功能：即時更新數據，顯示每日、每月的消費情況
-        包含：各類別累計、占比、預算剩餘
         """
-        today = datetime.now().strftime('%Y-%m-%d')
-        
-        # 取得時間範圍（預設本月）
+        # 取得時間範圍
         start_date = request.args.get('start_date', 
             (datetime.now().replace(day=1)).strftime('%Y-%m-%d'))
-        end_date = request.args.get('end_date', today)
+        end_date = request.args.get('end_date', 
+            datetime.now().strftime('%Y-%m-%d'))
         
-        # === 今日統計 ===
-        today_expense_result = db.session.execute(text('''
-            SELECT COALESCE(SUM(amount), 0) FROM transactions 
-            WHERE type = 'expense' AND date = :today
-        '''), {'today': today})
-        today_expense = float(today_expense_result.scalar())
-        
-        today_income_result = db.session.execute(text('''
-            SELECT COALESCE(SUM(amount), 0) FROM transactions 
-            WHERE type = 'income' AND date = :today
-        '''), {'today': today})
-        today_income = float(today_income_result.scalar())
-        
-        # === 期間統計（本月） ===
         # 總收入
         income_result = db.session.execute(text('''
             SELECT COALESCE(SUM(amount), 0) FROM transactions 
@@ -473,70 +435,25 @@ def create_app():
         '''), {'start': start_date, 'end': end_date})
         total_expense = float(expense_result.scalar())
         
-        # === 各類別支出統計 + 占比 ===
+        # 各類別支出統計
         category_result = db.session.execute(text('''
-            SELECT c.id, c.name, c.icon, c.color, COALESCE(SUM(t.amount), 0) as total
+            SELECT c.name, c.icon, COALESCE(SUM(t.amount), 0) as total
             FROM transactions t
             JOIN categories c ON t.category_id = c.id
             WHERE t.type = 'expense' AND t.date BETWEEN :start AND :end
-            GROUP BY c.id, c.name, c.icon, c.color
+            GROUP BY c.id, c.name, c.icon
             ORDER BY total DESC
         '''), {'start': start_date, 'end': end_date})
         
         categories_breakdown = []
         for row in category_result:
-            amount = float(row[4])
-            percentage = (amount / total_expense * 100) if total_expense > 0 else 0
             categories_breakdown.append({
-                'category_id': row[0],
-                'category': row[1],
-                'icon': row[2],
-                'color': row[3],
-                'amount': amount,
-                'percentage': round(percentage, 1)
-            })
-        
-        # === 預算使用狀況 ===
-        budget_result = db.session.execute(text('''
-            SELECT b.id, b.name, b.amount, c.name as category_name, c.icon,
-                   COALESCE((
-                       SELECT SUM(t.amount) FROM transactions t 
-                       WHERE t.category_id = b.category_id 
-                       AND t.type = 'expense'
-                       AND t.date >= b.start_date
-                       AND (b.end_date IS NULL OR t.date <= b.end_date)
-                   ), 0) as spent
-            FROM budgets b
-            JOIN categories c ON b.category_id = c.id
-            WHERE b.is_active = true
-        '''))
-        
-        budget_status = []
-        for row in budget_result:
-            budget_amount = float(row[2])
-            spent = float(row[5])
-            remaining = budget_amount - spent
-            usage_percent = (spent / budget_amount * 100) if budget_amount > 0 else 0
-            
-            budget_status.append({
-                'budget_id': row[0],
-                'name': row[1],
-                'category_name': row[3],
-                'icon': row[4],
-                'budget_amount': budget_amount,
-                'spent': spent,
-                'remaining': remaining,
-                'usage_percent': round(usage_percent, 1),
-                'status': 'over' if remaining < 0 else 'warning' if usage_percent > 80 else 'ok'
+                'category': row[0],
+                'icon': row[1],
+                'amount': float(row[2])
             })
         
         return jsonify({
-            'today': {
-                'date': today,
-                'income': today_income,
-                'expense': today_expense,
-                'net': today_income - today_expense
-            },
             'period': {
                 'start': start_date,
                 'end': end_date
@@ -544,9 +461,7 @@ def create_app():
             'total_income': total_income,
             'total_expense': total_expense,
             'net': total_income - total_expense,
-            'savings_rate': round((total_income - total_expense) / total_income * 100, 1) if total_income > 0 else 0,
-            'categories_breakdown': categories_breakdown,
-            'budget_status': budget_status
+            'categories_breakdown': categories_breakdown
         })
     
 
@@ -556,15 +471,12 @@ def create_app():
     def get_budgets():
         """
         取得所有預算及使用狀態
-        功能：自動處理過期與達標狀態
+        功能：更新各類別支出與預算狀態
         """
         try:
-            today = datetime.now().date()
-            
-            # 查詢所有 active 預算
             result = db.session.execute(text('''
                 SELECT b.id, b.category_id, b.name, b.amount, b.period, 
-                       b.start_date, b.end_date, b.is_active, b.status,
+                       b.start_date, b.end_date, b.is_active,
                        c.name as category_name, c.icon as category_icon,
                        COALESCE((
                            SELECT SUM(t.amount) 
@@ -577,97 +489,36 @@ def create_app():
                 FROM budgets b
                 JOIN categories c ON b.category_id = c.id
                 WHERE b.is_active = true
-                ORDER BY 
-                    CASE WHEN b.end_date IS NULL THEN 1 ELSE 0 END,
-                    b.end_date ASC
             '''))
             
             budgets = []
-            ids_to_delete = []  # 過期未達標，要刪除的
-            ids_to_complete = []  # 達標的
-            
             for row in result:
-                budget_id = row[0]
                 budget_amount = float(row[3]) if row[3] else 0
-                spent = float(row[11]) if row[11] else 0
+                spent = float(row[10]) if row[10] else 0
                 remaining = budget_amount - spent
                 usage_percent = (spent / budget_amount * 100) if budget_amount > 0 else 0
-                end_date = row[6]
-                
-                # 計算剩餘天數
-                days_remaining = None
-                is_expired = False
-                if end_date:
-                    if isinstance(end_date, str):
-                        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-                    days_remaining = (end_date - today).days
-                    is_expired = days_remaining < 0
-                
-                # 判斷狀態
-                is_completed = usage_percent >= 100 or spent >= budget_amount
-                
-                if is_expired and not is_completed:
-                    # 過期未達標 → 加入刪除清單
-                    ids_to_delete.append(budget_id)
-                    continue  # 不加入回傳列表
-                
-                if is_completed:
-                    # 達標 → 標記為 completed
-                    ids_to_complete.append(budget_id)
-                    status = 'completed'
-                elif is_expired:
-                    status = 'expired'
-                elif usage_percent > 80:
-                    status = 'warning'
-                else:
-                    status = 'ok'
                 
                 budgets.append({
-                    'id': budget_id,
+                    'id': row[0],
                     'category_id': row[1],
                     'name': row[2],
                     'amount': budget_amount,
                     'period': row[4],
                     'start_date': str(row[5]) if row[5] else None,
                     'end_date': str(row[6]) if row[6] else None,
-                    'category_name': row[9],
-                    'category_icon': row[10],
+                    'category_name': row[8],
+                    'category_icon': row[9],
                     'spent': spent,
                     'remaining': remaining,
                     'usage_percent': round(usage_percent, 2),
-                    'days_remaining': days_remaining,
-                    'status': status
+                    'status': 'over' if remaining < 0 else 'warning' if usage_percent > 80 else 'ok'
                 })
-            
-            # 刪除過期未達標的預算
-            if ids_to_delete:
-                db.session.execute(text(
-                    'DELETE FROM budgets WHERE id IN :ids'
-                ), {'ids': tuple(ids_to_delete)})
-                db.session.commit()
-            
-            # 更新達標預算的狀態
-            if ids_to_complete:
-                db.session.execute(text(
-                    'UPDATE budgets SET status = :status WHERE id IN :ids'
-                ), {'status': 'completed', 'ids': tuple(ids_to_complete)})
-                db.session.commit()
             
             return jsonify(budgets)
         except Exception as e:
             print(f'取得預算錯誤: {e}')
             return jsonify({'error': str(e)}), 500
-    @app.route('/api/budgets/<int:id>', methods=['DELETE'])
-    def delete_budget(id):
-        """刪除預算"""
-        try:
-            db.session.execute(text('DELETE FROM budgets WHERE id = :id'), {'id': id})
-            db.session.commit()
-            return jsonify({'message': '預算已刪除'})
-        except Exception as e:
-            print(f'刪除預算錯誤: {e}')
-            return jsonify({'error': str(e)}), 500
-        
+    
     @app.route('/api/budgets', methods=['POST'])
     @app.route('/api/budgets', methods=['POST'])
     def create_budget():
@@ -700,78 +551,31 @@ def create_app():
         """
         取得所有財務目標
         功能：管理使用者的短期與中期財務目標
-        包含：落後/如期/超前判斷
         """
-        status_filter = request.args.get('status')
+        status = request.args.get('status')
         
-        if status_filter:
+        if status:
             result = db.session.execute(text(
                 'SELECT * FROM financial_goals WHERE status = :status ORDER BY priority DESC'
-            ), {'status': status_filter})
+            ), {'status': status})
         else:
             result = db.session.execute(text(
                 'SELECT * FROM financial_goals ORDER BY priority DESC'
             ))
         
         goals = []
-        today = datetime.now().date()
-        
         for row in result:
             target = float(row[2]) if row[2] else 0
             current = float(row[3]) if row[3] else 0
             progress = (current / target * 100) if target > 0 else 0
             
-            # 計算剩餘天數與預期進度
+            # 計算預估達成日期
             days_remaining = None
-            expected_progress = 0
-            progress_status = 'on_track'  # 預設如期
-            
             if row[4] and row[6] == 'in_progress':  # deadline exists and in progress
                 deadline = row[4]
                 if isinstance(deadline, str):
                     deadline = datetime.strptime(deadline, '%Y-%m-%d').date()
-                
-                # 取得建立日期（假設是 row[8] created_at）
-                created_at = row[8] if len(row) > 8 and row[8] else None
-                if created_at:
-                    if isinstance(created_at, str):
-                        created_at = datetime.strptime(created_at[:10], '%Y-%m-%d').date()
-                    else:
-                        created_at = created_at.date() if hasattr(created_at, 'date') else created_at
-                else:
-                    # 如果沒有建立日期，假設從目標開始到現在的一半時間
-                    created_at = today - timedelta(days=30)
-                
-                days_remaining = (deadline - today).days
-                total_days = (deadline - created_at).days
-                days_passed = (today - created_at).days
-                
-                # 計算預期進度（根據時間比例）
-                if total_days > 0:
-                    expected_progress = (days_passed / total_days) * 100
-                
-                # 判斷進度狀態
-                if progress > 0 and expected_progress > 0:
-                    ratio = progress / expected_progress
-                    if ratio < 0.8:
-                        progress_status = 'behind'  # 落後
-                    elif ratio > 1.2:
-                        progress_status = 'ahead'   # 超前
-                    else:
-                        progress_status = 'on_track'  # 如期
-                elif days_remaining < 0:
-                    progress_status = 'overdue'  # 已過期
-            
-            # 計算每日/每週/每月需存金額
-            remaining_amount = target - current
-            daily_needed = 0
-            weekly_needed = 0
-            monthly_needed = 0
-            
-            if days_remaining and days_remaining > 0 and remaining_amount > 0:
-                daily_needed = remaining_amount / days_remaining
-                weekly_needed = daily_needed * 7
-                monthly_needed = daily_needed * 30
+                days_remaining = (deadline - datetime.now().date()).days
             
             goals.append({
                 'id': row[0],
@@ -783,15 +587,8 @@ def create_app():
                 'status': row[6],
                 'description': row[7],
                 'progress': round(progress, 2),
-                'expected_progress': round(expected_progress, 2),
-                'remaining_amount': remaining_amount,
-                'days_remaining': days_remaining,
-                'progress_status': progress_status,
-                'recommendations': {
-                    'daily_saving_needed': round(daily_needed, 0),
-                    'weekly_saving_needed': round(weekly_needed, 0),
-                    'monthly_saving_needed': round(monthly_needed, 0)
-                }
+                'remaining_amount': target - current,
+                'days_remaining': days_remaining
             })
         
         return jsonify(goals)
@@ -1010,10 +807,9 @@ def create_app():
         """
         取得財務建議
         功能：根據使用者可支配金額與消費習慣生成可行策略，
-              並提供動態調整建議（落後/如期/超前）
+              並提供動態調整建議
         """
         suggestions = []
-        adjustment_plans = []
         
         # 1. 分析本月支出
         today = datetime.now()
@@ -1038,28 +834,8 @@ def create_app():
         days_passed = today.day
         days_in_month = 30
         days_remaining = days_in_month - days_passed
-        daily_available = disposable / days_remaining if days_remaining > 0 else 0
-        weekly_available = daily_available * 7
         
-        # 2. 分析各類別支出（找出最高支出類別）
-        category_result = db.session.execute(text('''
-            SELECT c.name, COALESCE(SUM(t.amount), 0) as total
-            FROM transactions t
-            JOIN categories c ON t.category_id = c.id
-            WHERE t.type = 'expense' AND t.date >= :start
-            GROUP BY c.id, c.name
-            ORDER BY total DESC
-            LIMIT 3
-        '''), {'start': start_of_month})
-        
-        top_categories = []
-        for row in category_result:
-            top_categories.append({
-                'name': row[0],
-                'amount': float(row[1])
-            })
-        
-        # 3. 分析預算狀態
+        # 2. 分析預算狀態
         budget_result = db.session.execute(text('''
             SELECT b.name, b.amount, c.name as category_name,
                    COALESCE((
@@ -1077,153 +853,59 @@ def create_app():
             budget_amount = float(row[1])
             spent = float(row[3])
             usage = (spent / budget_amount * 100) if budget_amount > 0 else 0
-            remaining_budget = budget_amount - spent
             
             if usage > 100:
-                over_amount = spent - budget_amount
                 suggestions.append({
                     'type': 'warning',
                     'category': '預算超支',
-                    'message': f'「{row[2]}」預算已超支 ${over_amount:.0f}，建議本月減少此類支出',
-                    'action': f'建議每週減少 ${over_amount/4:.0f} 的{row[2]}支出'
+                    'message': f'{row[2]} 的預算已超支 {usage-100:.1f}%，建議減少此類支出'
                 })
             elif usage > 80:
                 suggestions.append({
                     'type': 'caution',
                     'category': '預算警告',
-                    'message': f'「{row[2]}」預算已使用 {usage:.0f}%，剩餘 ${remaining_budget:.0f}',
-                    'action': f'建議每日{row[2]}支出控制在 ${remaining_budget/days_remaining:.0f} 以內'
+                    'message': f'{row[2]} 的預算已使用 {usage:.1f}%，請注意控制支出'
                 })
         
-        # 4. 分析儲蓄目標（含落後/如期/超前判斷）
+        # 3. 分析儲蓄目標
         goal_result = db.session.execute(text('''
-            SELECT id, name, target_amount, current_amount, deadline, created_at
+            SELECT name, target_amount, current_amount, deadline
             FROM financial_goals
             WHERE status = 'in_progress'
         '''))
         
         for row in goal_result:
-            goal_id = row[0]
-            goal_name = row[1]
-            target = float(row[2])
-            current = float(row[3])
+            target = float(row[1])
+            current = float(row[2])
             remaining = target - current
-            progress = (current / target * 100) if target > 0 else 0
             
-            if row[4]:  # has deadline
-                deadline = row[4]
+            if row[3]:  # has deadline
+                deadline = row[3]
                 if isinstance(deadline, str):
                     deadline = datetime.strptime(deadline, '%Y-%m-%d').date()
-                
-                created_at = row[5]
-                if created_at:
-                    if isinstance(created_at, str):
-                        created_at = datetime.strptime(created_at[:10], '%Y-%m-%d').date()
-                    elif hasattr(created_at, 'date'):
-                        created_at = created_at.date()
-                else:
-                    created_at = today.date() - timedelta(days=30)
-                
                 days_to_deadline = (deadline - today.date()).days
-                total_days = (deadline - created_at).days
-                days_passed_goal = (today.date() - created_at).days
                 
-                # 計算預期進度
-                expected_progress = (days_passed_goal / total_days * 100) if total_days > 0 else 0
-                
-                # 計算每日/每週/每月需存金額
-                daily_needed = remaining / days_to_deadline if days_to_deadline > 0 else 0
-                weekly_needed = daily_needed * 7
-                monthly_needed = daily_needed * 30
-                
-                # 判斷進度狀態並生成建議
-                if progress > 0 and expected_progress > 0:
-                    ratio = progress / expected_progress
+                if days_to_deadline > 0:
+                    daily_needed = remaining / days_to_deadline
+                    weekly_needed = daily_needed * 7
                     
-                    if ratio < 0.8:
-                        # === 落後 ===
-                        shortfall = (expected_progress - progress) / 100 * target
-                        extra_weekly = shortfall / (days_to_deadline / 7) if days_to_deadline > 7 else shortfall
+                    if disposable > 0 and days_remaining > 0:
+                        daily_available = disposable / days_remaining
                         
-                        # 建議延長期限
-                        if daily_needed > daily_available and daily_available > 0:
-                            new_days_needed = int(remaining / daily_available)
-                            new_deadline = today.date() + timedelta(days=new_days_needed)
-                            new_deadline_str = new_deadline.strftime('%Y-%m-%d')
+                        if daily_available >= daily_needed:
+                            suggestions.append({
+                                'type': 'success',
+                                'category': '儲蓄建議',
+                                'message': f'目標「{row[0]}」進度良好！建議每日存 ${daily_needed:.0f}，您目前每日可存 ${daily_available:.0f}'
+                            })
                         else:
-                            new_deadline_str = None
-                        
-                        suggestions.append({
-                            'type': 'warning',
-                            'category': '目標進度落後',
-                            'message': f'「{goal_name}」進度落後！目前 {progress:.0f}%，預期應達 {expected_progress:.0f}%',
-                            'action': f'建議每週增加儲蓄 ${extra_weekly:.0f}'
-                        })
-                        
-                        adjustment_plans.append({
-                            'goal_id': goal_id,
-                            'goal_name': goal_name,
-                            'status': 'behind',
-                            'current_progress': round(progress, 1),
-                            'expected_progress': round(expected_progress, 1),
-                            'adjusted_weekly_saving': round(weekly_needed + extra_weekly, 0),
-                            'adjusted_monthly_saving': round((weekly_needed + extra_weekly) * 4, 0),
-                            'reduce_category': top_categories[0]['name'] if top_categories else None,
-                            'reduce_amount': round(extra_weekly, 0),
-                            'new_deadline': new_deadline_str,
-                            'message': f'需加速儲蓄或延長期限至 {new_deadline_str}' if new_deadline_str else '需加速儲蓄'
-                        })
-                        
-                    elif ratio > 1.2:
-                        # === 超前 ===
-                        surplus = (progress - expected_progress) / 100 * target
-                        days_ahead = int((progress - expected_progress) / 100 * total_days)
-                        early_finish = deadline - timedelta(days=days_ahead)
-                        
-                        suggestions.append({
-                            'type': 'success',
-                            'category': '目標進度超前',
-                            'message': f'🎉「{goal_name}」進度超前！目前 {progress:.0f}%，預期 {expected_progress:.0f}%',
-                            'action': f'可提前於 {early_finish.strftime("%Y-%m-%d")} 完成，或將多餘 ${surplus:.0f} 分配到其他目標'
-                        })
-                        
-                        adjustment_plans.append({
-                            'goal_id': goal_id,
-                            'goal_name': goal_name,
-                            'status': 'ahead',
-                            'current_progress': round(progress, 1),
-                            'expected_progress': round(expected_progress, 1),
-                            'early_finish_date': early_finish.strftime('%Y-%m-%d'),
-                            'surplus_amount': round(surplus, 0),
-                            'options': [
-                                f'提前完成：預計 {early_finish.strftime("%Y-%m-%d")}',
-                                f'分配多餘儲蓄 ${surplus:.0f} 到其他目標',
-                                f'本月可增加娛樂預算 ${surplus/4:.0f} 作為獎勵'
-                            ],
-                            'message': '表現優異！可選擇提前完成或獎勵自己'
-                        })
-                        
-                    else:
-                        # === 如期 ===
-                        suggestions.append({
-                            'type': 'info',
-                            'category': '目標進度正常',
-                            'message': f'「{goal_name}」進度正常，目前 {progress:.0f}%',
-                            'action': f'繼續保持每週存 ${weekly_needed:.0f} 即可達成'
-                        })
-                        
-                        adjustment_plans.append({
-                            'goal_id': goal_id,
-                            'goal_name': goal_name,
-                            'status': 'on_track',
-                            'current_progress': round(progress, 1),
-                            'expected_progress': round(expected_progress, 1),
-                            'weekly_saving': round(weekly_needed, 0),
-                            'monthly_saving': round(monthly_needed, 0),
-                            'message': '保持現有儲蓄策略即可'
-                        })
+                            suggestions.append({
+                                'type': 'info',
+                                'category': '儲蓄調整',
+                                'message': f'目標「{row[0]}」需要每日存 ${daily_needed:.0f}，建議提高每週儲蓄額或調整目標日期'
+                            })
         
-        # 5. 儲蓄率建議
+        # 4. 一般建議
         if monthly_income > 0:
             savings_rate = (disposable / monthly_income * 100) if disposable > 0 else 0
             
@@ -1231,15 +913,13 @@ def create_app():
                 suggestions.append({
                     'type': 'warning',
                     'category': '儲蓄率偏低',
-                    'message': f'本月儲蓄率僅 {savings_rate:.1f}%',
-                    'action': '建議目標至少 20%，可從減少最高支出類別開始'
+                    'message': f'本月儲蓄率僅 {savings_rate:.1f}%，建議目標至少 20%'
                 })
             elif savings_rate >= 30:
                 suggestions.append({
                     'type': 'success',
                     'category': '儲蓄表現優異',
-                    'message': f'本月儲蓄率達 {savings_rate:.1f}%，表現優異！',
-                    'action': '可考慮增加投資或提高儲蓄目標'
+                    'message': f'本月儲蓄率達 {savings_rate:.1f}%，表現優異！'
                 })
         
         return jsonify({
@@ -1247,26 +927,16 @@ def create_app():
                 'monthly_income': monthly_income,
                 'monthly_expense': monthly_expense,
                 'disposable': disposable,
-                'daily_available': round(daily_available, 0),
-                'weekly_available': round(weekly_available, 0),
-                'days_remaining': days_remaining,
-                'top_expense_categories': top_categories
+                'days_remaining': days_remaining
             },
-            'suggestions': suggestions,
-            'adjustment_plans': adjustment_plans
+            'suggestions': suggestions
         })
     
     # 健康檢查
     @app.route('/health')
     def health():
         return jsonify({'status': 'ok', 'database': 'connected'})
-    # 載入投資組合路由
-    from app.routes.portfolio_routes import portfolio_bp, init_portfolio_routes
-    init_portfolio_routes(db)
-    app.register_blueprint(portfolio_bp)
     
-    return app
-
     return app
 
 # 建立 app 實例
