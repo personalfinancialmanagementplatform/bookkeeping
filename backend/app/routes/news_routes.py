@@ -39,16 +39,19 @@ def ingest_news():
 def get_today_news():
     limit = int(request.args.get("limit", 10))
 
-    # 台灣時區（UTC+8）
-    tz = timezone(timedelta(hours=8))
-    start = datetime.now(tz).replace(hour=0, minute=0, second=0, microsecond=0)
+    # UTC aware 的今天 00:00
+    start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    q = NewsArticle.query
-    q = q.filter(NewsArticle.published_at.isnot(None))
-    q = q.filter(NewsArticle.published_at >= start)
-    q = q.order_by(NewsArticle.published_at.desc()).limit(limit)
+    articles = (
+        NewsArticle.query
+        .filter(NewsArticle.published_at.isnot(None))
+        .filter(NewsArticle.published_at >= start)
+        .order_by(NewsArticle.published_at.desc())
+        .limit(limit)
+        .all()
+    )
 
-    return jsonify([a.to_dict() for a in q.all()])
+    return jsonify([a.to_dict() for a in articles])
 
 @news_bp.route("/query", methods=["GET"])
 def query_news():

@@ -118,6 +118,9 @@ def create_app():
         "https://tw.stock.yahoo.com/rss?category=news",              # 最新新聞
         "https://tw.stock.yahoo.com/rss?category=tw-market",         # 台股動態
         "https://tw.stock.yahoo.com/rss?category=intl-markets",      # 國際財經
+        "https://www.cna.com.tw/rss.aspx?type=finance",              # 中央社財經
+        "https://www.businessweekly.com.tw/rss",                     # 商業週刊
+        "https://money.udn.com/rssfeed/news/1001/5588"               # 經濟日報
 
     ]
 

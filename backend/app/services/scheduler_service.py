@@ -28,7 +28,7 @@ def init_scheduler(app, rss_urls):
                 a.summary = NewsSummarizeService.summarize(a.title, a.content or "")
             db.session.commit()
 
-            current_app.logger.info(f"[scheduler] ingest stats={stats}, summarized={len(targets)}")
+            job_ingest_and_summarize()
 
     # 每天 07:30 跑一次（你可改）
     scheduler.add_job(job_ingest_and_summarize, "cron", hour=7, minute=30)

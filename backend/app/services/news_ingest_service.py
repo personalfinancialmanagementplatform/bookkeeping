@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Optional
 import feedparser
 from dateutil import parser as date_parser
@@ -15,29 +15,58 @@ DEFAULT_RSS = [
 
 class NewsIngestService:
     @staticmethod
+    def _to_utc_aware(dt: Optional[datetime]) -> Optional[datetime]:
+        """
+        統一轉成「UTC aware datetime」：
+        - aware datetime -> 轉成 UTC aware
+        - naive datetime -> 視為 UTC，補上 tzinfo=UTC
+        """
+        if dt is None:
+            return None
+
+        if dt.tzinfo is None:
+            # RSS 沒有時區資訊：先當作 UTC（MVP 最安全）
+            return dt.replace(tzinfo=timezone.utc)
+
+        # 有時區：轉 UTC
+        return dt.astimezone(timezone.utc)
+    
+    @staticmethod
     def fetch_from_rss(rss_urls: List[str]) -> List[Dict]:
-        articles = []
+        articles: List[Dict] = []
+
         for url in rss_urls:
             feed = feedparser.parse(url)
-            for e in feed.entries:
+
+            # source（RSS feed title）
+            source = None
+            if hasattr(feed, "feed") and hasattr(feed.feed, "title"):
+                source = normalize_whitespace(feed.feed.title or "")
+
+            if source and "：" in source:
+                source = source.split("：", 1)[0].strip()
+
+            for e in getattr(feed, "entries", []) or []:
                 title = normalize_whitespace(getattr(e, "title", "") or "")
                 link = normalize_whitespace(getattr(e, "link", "") or "")
-                published = getattr(e, "published", None) or getattr(e, "updated", None)
+
+                # 常見時間欄位：published / updated / pubDate
+                published_raw = (
+                    getattr(e, "published", None)
+                    or getattr(e, "updated", None)
+                    or getattr(e, "pubDate", None)
+                )
 
                 published_at: Optional[datetime] = None
-                if published:
+                if published_raw:
                     try:
-                        published_at = date_parser.parse(published)
+                        dt = date_parser.parse(published_raw)
+                        published_at = NewsIngestService._to_utc_aware(dt)
                     except Exception:
                         published_at = None
 
-                # RSS 通常只有摘要，當 content 用（MVP 夠）
                 summary = normalize_whitespace(getattr(e, "summary", "") or "")
-                content = summary
-
-                source = None
-                if hasattr(feed, "feed") and hasattr(feed.feed, "title"):
-                    source = normalize_whitespace(feed.feed.title or "")
+                content = summary  # MVP: RSS 摘要當 content
 
                 if not title or not link:
                     continue
@@ -46,10 +75,12 @@ class NewsIngestService:
                     "title": title,
                     "url": link,
                     "source": source,
-                    "published_at": published_at,
+                    "published_at": published_at,  # ✅ UTC aware
                     "content": content
                 })
+
         return articles
+
 
     @staticmethod
     def upsert_articles(items: List[Dict]) -> Dict:
