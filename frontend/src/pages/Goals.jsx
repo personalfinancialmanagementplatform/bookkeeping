@@ -5,7 +5,9 @@ function Goals() {
   const [goals, setGoals] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showAddMoneyModal, setShowAddMoneyModal] = useState(null);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(null);
   const [addAmount, setAddAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
   const [form, setForm] = useState({
     name: '',
     target_amount: '',
@@ -22,7 +24,25 @@ function Goals() {
   const loadData = async () => {
     try {
       const res = await goalsAPI.getAll();
-      setGoals(res.data);
+      // 排序：進行中優先 → 優先級高優先 → 截止日期近優先
+      const sorted = res.data.sort((a, b) => {
+        // 1. 已達成的放最後
+        if (a.status === 'completed' && b.status !== 'completed') return 1;
+        if (a.status !== 'completed' && b.status === 'completed') return -1;
+        
+        // 2. 優先級高的先顯示（5⭐ → 1⭐）
+        if (b.priority !== a.priority) return b.priority - a.priority;
+        
+        // 3. 截止日期近的先顯示
+        if (a.deadline && b.deadline) {
+          return new Date(a.deadline) - new Date(b.deadline);
+        }
+        if (a.deadline) return -1;
+        if (b.deadline) return 1;
+        
+        return 0;
+      });
+      setGoals(sorted);
     } catch (error) {
       console.error('載入失敗:', error);
     }
@@ -63,8 +83,34 @@ function Goals() {
     }
   };
 
+  // 取出金額
+  const handleWithdraw = async (goalId) => {
+    const goal = goals.find(g => g.id === goalId);
+    const amount = parseFloat(withdrawAmount);
+    
+    if (amount > goal.current_amount) {
+      alert('取出金額不能超過目前存款金額');
+      return;
+    }
+    
+    try {
+      // 使用負數來減少金額
+      await goalsAPI.addMoney(goalId, -amount);
+      setShowWithdrawModal(null);
+      setWithdrawAmount('');
+      loadData();
+    } catch (error) {
+      console.error('取出失敗:', error);
+    }
+  };
+
   const getPriorityStars = (priority) => {
     return '⭐'.repeat(priority);
+  };
+
+  // 取得目前選中的目標
+  const getSelectedGoal = (goalId) => {
+    return goals.find(g => g.id === goalId);
   };
 
   return (
@@ -121,15 +167,30 @@ function Goals() {
               </p>
             )}
 
-            {goal.status !== 'completed' && (
+            {/* 存入和取出按鈕並排 */}
+            <div style={{ display: 'flex', gap: '10px' }}>
               <button 
                 className="btn btn-success"
-                style={{ width: '100%' }}
+                style={{ flex: 1 }}
                 onClick={() => setShowAddMoneyModal(goal.id)}
               >
-                💰 存入金額
+                💰 存入
               </button>
-            )}
+              {goal.current_amount > 0 && (
+                <button 
+                  className="btn"
+                  style={{ 
+                    flex: 1,
+                    backgroundColor: '#e74c3c',
+                    color: 'white',
+                    border: 'none'
+                  }}
+                  onClick={() => setShowWithdrawModal(goal.id)}
+                >
+                  💸 取出
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -223,6 +284,9 @@ function Goals() {
         <div className="modal-overlay" onClick={() => setShowAddMoneyModal(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3>💰 存入金額</h3>
+            <p style={{ color: '#666', marginBottom: '15px' }}>
+              目標：{getSelectedGoal(showAddMoneyModal)?.name}
+            </p>
             <div className="form-group">
               <label>金額</label>
               <input
@@ -230,6 +294,7 @@ function Goals() {
                 value={addAmount}
                 onChange={e => setAddAmount(e.target.value)}
                 placeholder="輸入要存入的金額"
+                min="1"
               />
             </div>
             <div className="modal-actions">
@@ -239,8 +304,64 @@ function Goals() {
               <button 
                 className="btn btn-success"
                 onClick={() => handleAddMoney(showAddMoneyModal)}
+                disabled={!addAmount || parseFloat(addAmount) <= 0}
               >
                 確認存入
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 取出金額 Modal */}
+      {showWithdrawModal && (
+        <div className="modal-overlay" onClick={() => setShowWithdrawModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>💸 取出金額</h3>
+            <p style={{ color: '#666', marginBottom: '10px' }}>
+              目標：{getSelectedGoal(showWithdrawModal)?.name}
+            </p>
+            <p style={{ 
+              color: '#e74c3c', 
+              fontSize: '0.9rem', 
+              marginBottom: '15px',
+              padding: '10px',
+              backgroundColor: '#fdf2f2',
+              borderRadius: '6px'
+            }}>
+              ⚠️ 最多可取出：${getSelectedGoal(showWithdrawModal)?.current_amount?.toLocaleString()}
+            </p>
+            <div className="form-group">
+              <label>取出金額</label>
+              <input
+                type="number"
+                value={withdrawAmount}
+                onChange={e => setWithdrawAmount(e.target.value)}
+                placeholder="輸入要取出的金額"
+                min="1"
+                max={getSelectedGoal(showWithdrawModal)?.current_amount}
+              />
+              {withdrawAmount && parseFloat(withdrawAmount) > (getSelectedGoal(showWithdrawModal)?.current_amount || 0) && (
+                <p style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '5px' }}>
+                  ⚠️ 取出金額不能超過目前存款
+                </p>
+              )}
+            </div>
+            <div className="modal-actions">
+              <button className="btn" onClick={() => setShowWithdrawModal(null)}>
+                取消
+              </button>
+              <button 
+                className="btn"
+                style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none' }}
+                onClick={() => handleWithdraw(showWithdrawModal)}
+                disabled={
+                  !withdrawAmount || 
+                  parseFloat(withdrawAmount) <= 0 ||
+                  parseFloat(withdrawAmount) > (getSelectedGoal(showWithdrawModal)?.current_amount || 0)
+                }
+              >
+                確認取出
               </button>
             </div>
           </div>
