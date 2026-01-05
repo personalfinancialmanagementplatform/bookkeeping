@@ -1,7 +1,7 @@
 # Personal Financial Management Platform
 # 個人財務管理平台 - 參考 Firefly III 開源架構設計
 
-![Version](https://img.shields.io/badge/version-1.3.0-blue)
+![Version](https://img.shields.io/badge/version-1.4.0-blue)
 ![Python](https://img.shields.io/badge/Python-3.13-green)
 ![React](https://img.shields.io/badge/React-18-blue)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
@@ -20,6 +20,7 @@
 | **預算管理** | 設定各類別預算，自動追蹤使用狀態，過期未達標自動刪除 |
 | **財務目標** | 管理短期/中期儲蓄目標，含進度追蹤（落後/如期/超前判斷） |
 | **投資組合** | 股票/ETF 持倉管理、資產配置分析、即時報價 |
+| **技術指標監控** | KD 指標、MA 均線交叉訊號即時偵測與提醒 |
 | **配置建議** | 風險問卷評估 + 智慧投資組合配置建議 |
 | **財經新聞** | 自動抓取財經新聞，AI 摘要整理 |
 | **理財學習** | 理財知識庫，智慧搜尋 |
@@ -38,6 +39,7 @@
 | 資產配置 | 圓餅圖顯示各類資產占比 |
 | 本月統計 | 本月投資支出、賣出收入、股息收入 |
 | 最近交易 | 顯示最近 5 筆投資交易記錄 |
+| 技術訊號 | 即時偵測 KD/MA 黃金交叉與死亡交叉 |
 | 關注清單 | 追蹤感興趣的股票 |
 | 損益計算 | 自動計算未實現損益與報酬率 |
 | 配息記錄 | 追蹤股息收入與配息歷史 |
@@ -50,6 +52,38 @@
 | ETF | etf | 🔵 #3498db |
 | 債券 | bond | 🟢 #2ecc71 |
 | 基金 | fund | 🟠 #f39c12 |
+
+---
+
+## 技術指標監控功能（v1.4.0 新增）
+
+### 功能特色
+
+| 功能 | 說明 |
+|------|------|
+| KD 指標偵測 | 自動計算 9-3-3 KD 值，偵測黃金/死亡交叉 |
+| MA 均線偵測 | 監控 5 日與 20 日均線交叉訊號 |
+| 訊號強度判斷 | 區分強/普/弱訊號（超買超賣區加權） |
+| 即時提醒 | 投資組合頁面卡片即時顯示買入/賣出訊號 |
+| 批次分析 | 一次分析所有持倉的技術指標 |
+
+### KD 指標交叉（隨機指標）
+
+| 訊號類型 | 條件 | 意義 |
+|----------|------|------|
+| 黃金交叉 | K 線從下方往上穿過 D 線 | 短期動能增強，買入訊號 |
+| 死亡交叉 | K 線從上方往下跌破 D 線 | 短期動能減弱，賣出訊號 |
+
+**訊號強度判斷：**
+- 超賣區（K < 20）出現黃金交叉 → 強烈買入訊號
+- 超買區（K > 80）出現死亡交叉 → 強烈賣出訊號
+
+### 移動平均線（MA）交叉
+
+| 訊號類型 | 條件 | 意義 |
+|----------|------|------|
+| 黃金交叉 | 5 日均線向上穿過 20 日均線 | 短期趨勢轉強，看漲訊號 |
+| 死亡交叉 | 5 日均線向下穿過 20 日均線 | 短期趨勢轉弱，看跌訊號 |
 
 ---
 
@@ -176,6 +210,17 @@
 | GET | /api/stocks/info/:symbol | 取得股票基本資訊 |
 | POST | /api/holdings/refresh-prices | 更新持倉即時價格 |
 
+### 技術指標 API（v1.4.0 新增）
+
+| 方法 | 端點 | 說明 |
+|------|------|------|
+| GET | /api/technical/signals | 取得投資組合技術訊號 |
+| GET | /api/technical/analyze/:symbol | 分析單一股票技術指標 |
+| GET | /api/technical/indicators/:symbol | 取得股票 KD/MA 數值 |
+| POST | /api/technical/batch-analyze | 批次分析多檔股票 |
+| GET | /api/technical/watchlist-signals | 取得關注清單技術訊號 |
+| GET | /api/technical/health | API 健康檢查 |
+
 ### 風險評估 & 配置建議 API
 
 | 方法 | 端點 | 說明 |
@@ -255,7 +300,7 @@
 - **SQLAlchemy 2.0** - ORM
 - **PostgreSQL 15** - 資料庫
 - **Flask-CORS** - 跨域支援
-- **twstock** - 台股即時報價
+- **twstock** - 台股即時報價與歷史資料
 - **requests** - HTTP 請求（Yahoo Finance API）
 - **APScheduler** - 排程任務
 
@@ -269,7 +314,6 @@
 ---
 
 ## 專案結構
-
 ```
 bookkeeping/
 ├── backend/                 # 後端程式碼
@@ -279,10 +323,12 @@ bookkeeping/
 │   │   │   └── knowledge_doc.py     # 知識文章模型
 │   │   ├── routes/         # API 路由
 │   │   │   ├── portfolio_routes.py  # 投資組合 API
+│   │   │   ├── technical_routes.py  # 技術指標 API（v1.4.0 新增）
 │   │   │   ├── news_routes.py       # 新聞 API
 │   │   │   └── knowledge_routes.py  # 知識庫 API
 │   │   ├── services/       # 業務邏輯
 │   │   │   ├── stock_service.py     # 股票服務
+│   │   │   ├── technical_indicator_service.py  # 技術指標服務（v1.4.0 新增）
 │   │   │   ├── portfolio_advisor.py # 配置建議服務
 │   │   │   ├── news_ingest_service.py    # 新聞抓取
 │   │   │   ├── news_summarize_service.py # 新聞摘要
@@ -301,17 +347,20 @@ bookkeeping/
 │   │   │   ├── RiskQuestionnaire.jsx   # 風險問卷組件
 │   │   │   ├── RiskQuestionnaire.css
 │   │   │   ├── PortfolioAdvisor.jsx    # 配置建議組件
-│   │   │   └── PortfolioAdvisor.css
+│   │   │   ├── PortfolioAdvisor.css
+│   │   │   ├── TechnicalSignals.jsx    # 技術訊號組件（v1.4.0 新增）
+│   │   │   └── TechnicalSignals.css    # 技術訊號樣式（v1.4.0 新增）
 │   │   ├── pages/          # 頁面元件
 │   │   │   ├── Dashboard.jsx    # 財務總覽
 │   │   │   ├── Transactions.jsx # 交易記錄
 │   │   │   ├── Budgets.jsx      # 預算管理
 │   │   │   ├── Goals.jsx        # 財務目標
-│   │   │   ├── Portfolio.jsx    # 投資組合
+│   │   │   ├── Portfolio.jsx    # 投資組合（v1.4.0 更新）
+│   │   │   ├── Portfolio.css    # 投資組合樣式（v1.4.0 更新）
 │   │   │   ├── News.jsx         # 財經新聞
 │   │   │   └── Learn.jsx        # 理財學習
 │   │   ├── services/       # API 連接
-│   │   │   └── api.js
+│   │   │   └── api.js           # API 服務
 │   │   ├── App.jsx         # 主應用程式
 │   │   └── App.css         # 樣式
 │   └── package.json
@@ -330,21 +379,18 @@ bookkeeping/
 - PostgreSQL 15+
 
 ### 1. Clone 專案
-
 ```bash
 git clone https://github.com/personalfinancialmanagementplatform/bookkeeping.git
 cd bookkeeping
 ```
 
 ### 2. 設定資料庫
-
 ```sql
 -- 在 PostgreSQL 建立資料庫
 CREATE DATABASE bookkeeping;
 ```
 
 ### 3. 啟動後端
-
 ```bash
 cd backend
 
@@ -366,7 +412,6 @@ python run.py
 後端將在 http://localhost:5005 運行
 
 ### 4. 啟動前端
-
 ```bash
 cd frontend
 
@@ -408,9 +453,17 @@ PORT=5005
 - 總市值與未實現損益
 - 資產配置圓餅圖
 - 最近交易記錄
+- 今日技術訊號卡片
 - 持倉明細（依資產類型分組）
 - 關注清單
 - 配置建議按鈕
+
+### 技術訊號卡片
+- 買入/賣出訊號數量統計
+- KD 黃金交叉/死亡交叉提醒
+- MA 均線交叉提醒
+- 訊號強度標示（強/普/弱）
+- 一鍵重新分析
 
 ### 配置建議
 - 風險問卷評估（12題金管會標準）
@@ -433,6 +486,18 @@ PORT=5005
 ---
 
 ## 更新日誌
+
+### v1.4.0（最新）
+- 新增技術指標監控功能
+  - KD 指標（9-3-3）自動計算與交叉偵測
+  - MA 移動平均線（5日/20日）交叉偵測
+  - 黃金交叉（買入訊號）與死亡交叉（賣出訊號）即時提醒
+  - 訊號強度判斷（超買區/超賣區加權）
+- 新增技術訊號
+  - 投資組合頁面新增「今日技術訊號」
+  - 顯示買入/賣出訊號統計
+  - 支援展開查看所有訊號
+  - 一鍵重新分析功能
 
 ### v1.3.0
 - 新增財經新聞功能（自動抓取、AI 摘要）
@@ -466,10 +531,11 @@ PORT=5005
 - [Firefly III](https://www.firefly-iii.org/) - 開源個人財務管理系統
 - [Flask Documentation](https://flask.palletsprojects.com/)
 - [React Documentation](https://react.dev/)
+- [twstock](https://github.com/mlouielu/twstock) - 台灣股市資料擷取
 
 ## 開發團隊
 
-- 開發者：Emily、Tzu
+- 開發者：Jia、Tzu
 
 ## 授權
 

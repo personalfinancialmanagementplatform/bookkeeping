@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import PortfolioAdvisor from '../components/PortfolioAdvisor';
+import TechnicalSignals from '../components/TechnicalSignals';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import './Portfolio.css';
 
@@ -318,8 +319,8 @@ function Portfolio() {
         </div>
       </div>
 
-      {/* 本月統計 + 資產配置 + 最近交易 */}
-      <div className="middle-section">
+      {/* 本月統計 + 資產配置 + 最近交易 + 技術訊號 */}
+      <div className="middle-section middle-section-4col">
         <div className="card monthly-card">
           <h3>📅 本月投資</h3>
           <div className="monthly-grid">
@@ -387,6 +388,9 @@ function Portfolio() {
             <div className="empty-chart">尚無交易記錄</div>
           )}
         </div>
+
+        {/* 技術訊號卡片 */}
+        <TechnicalSignals holdings={holdings} onRefresh={loadData} />
       </div>
 
       {/* 頁籤 */}

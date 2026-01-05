@@ -72,4 +72,22 @@ export const knowledgeAPI = {
   // DELETE /api/knowledge/:id
   remove: (id) => api.delete(`/knowledge/${id}`),
 };
+// 技術指標 API
+export const technicalAPI = {
+    // GET /api/technical/signals - 取得投資組合的技術訊號
+    getPortfolioSignals: () => api.get('/technical/signals'),
+  
+    // GET /api/technical/analyze/:symbol - 分析單一股票
+    analyzeStock: (symbol) => api.get(`/technical/analyze/${symbol}`),
+  
+    // GET /api/technical/indicators/:symbol - 取得股票技術指標數值
+    getIndicators: (symbol) => api.get(`/technical/indicators/${symbol}`),
+  
+    // POST /api/technical/batch-analyze - 批次分析多檔股票
+    batchAnalyze: (symbols) => api.post('/technical/batch-analyze', { symbols }),
+  
+    // GET /api/technical/watchlist-signals - 取得關注清單的技術訊號
+    getWatchlistSignals: () => api.get('/technical/watchlist-signals'),
+  };
+  
 export default api;

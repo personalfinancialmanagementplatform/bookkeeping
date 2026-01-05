@@ -706,3 +706,64 @@
     height: 200px;
     color: #666;
   }
+  /* ============================================
+   四欄佈局（技術訊號卡片）
+   ============================================ */
+
+.middle-section-4col {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  
+  @media (max-width: 1400px) {
+    .middle-section-4col {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  @media (max-width: 800px) {
+    .middle-section-4col {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .middle-section-4col .card {
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .middle-section-4col .card h3 {
+    flex-shrink: 0;
+  }
+  
+  /* 配置建議按鈕 */
+  .btn-advisor {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-right: 10px;
+    transition: all 0.2s;
+  }
+  
+  .btn-advisor:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+  
+  .header-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .modal-large {
+    max-width: 900px;
+    width: 95%;
+    max-height: 90vh;
+  }
