@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import db
 
 class NewsArticle(db.Model):
@@ -10,13 +10,18 @@ class NewsArticle(db.Model):
     source = db.Column(db.Text, nullable=True)
     url = db.Column(db.Text, unique=True, nullable=False)
 
-    published_at = db.Column(db.DateTime, nullable=True)
+    published_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
     content = db.Column(db.Text, nullable=True)
     summary = db.Column(db.Text, nullable=True)
     topics = db.Column(db.Text, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False
+    )
+
 
     def to_dict(self):
         return {

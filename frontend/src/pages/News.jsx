@@ -85,6 +85,25 @@ function News() {
     return t.length > n ? t.slice(0, n) + '...' : t;
   };
 
+  const formatSource = (source) => {
+  if (!source) return '來源';
+  const s = String(source).trim();
+
+  // 只有在「確定是長標語」的格式才切
+  const separators = ['：', ' - ', '｜', '|', '—', '–'];
+  for (const sep of separators) {
+    if (s.includes(sep)) {
+      const head = s.split(sep)[0].trim();
+      // 切完如果太短反而怪，就用原本
+      return head.length >= 2 ? head : s;
+    }
+  }
+
+  // 沒有分隔符：像「Yahoo奇摩股市」就原樣顯示，不裁切
+  return s;
+};
+
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
@@ -129,25 +148,38 @@ function News() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
         {news.map((a) => (
-          <div key={a.id} className="card" style={{ cursor: 'pointer' }} onClick={() => openDetail(a)}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '10px' }}>
-              <h3 style={{ margin: 0, lineHeight: 1.3 }}>🗞️ {a.title}</h3>
-              <span className="tag tag-income" style={{ whiteSpace: 'nowrap' }}>
-                {a.source || '來源'}
-              </span>
+          <div
+            key={a.id}
+            className="card"
+            style={{
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            onClick={() => openDetail(a)}
+          >
+            {/* 會撐高的內容 */}
+            <div style={{ flexGrow: 1 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '10px' }}>
+                <h3 style={{ margin: 0, lineHeight: 1.3 }}>🗞️ {a.title}</h3>
+                <span className="tag tag-income" style={{ whiteSpace: 'nowrap' }}>
+                  {formatSource(a.source)}
+                </span>
+              </div>
+
+              <div style={{ marginTop: '10px', color: '#666', fontSize: '0.85rem' }}>
+                發布時間：{formatTime(a.published_at)}
+              </div>
+
+              <p style={{ marginTop: '10px', color: '#444', fontSize: '0.95rem' }}>
+                {clamp(a.content, 140)}
+              </p>
             </div>
 
-            <div style={{ marginTop: '10px', color: '#666', fontSize: '0.85rem' }}>
-              發布時間：{formatTime(a.published_at)}
-            </div>
-
-            <p style={{ marginTop: '10px', color: '#444', fontSize: '0.95rem' }}>
-              {clamp(a.content, 140)}
-            </p>
-
+            {/* 固定在底部的按鈕 */}
             <button
               className="btn btn-primary"
-              style={{ width: '100%' }}
+              style={{ width: '100%', marginTop: '10px' }}
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -159,6 +191,7 @@ function News() {
           </div>
         ))}
       </div>
+
 
       {news.length === 0 && !loading && (
         <div className="card" style={{ textAlign: 'center', color: '#999' }}>
@@ -175,7 +208,7 @@ function News() {
             <div style={{ marginBottom: '10px' }}>
               <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{selected.title}</div>
               <div style={{ color: '#666', fontSize: '0.9rem', marginTop: '6px' }}>
-                {selected.source || '來源'} ｜ {formatTime(selected.published_at)}
+                {formatSource(selected.source)} ｜ {formatTime(selected.published_at)}
               </div>
             </div>
 
@@ -191,6 +224,8 @@ function News() {
                 {summary || '（尚未產生摘要）'}
               </div>
             </div>
+
+
 
             <div style={{ color: '#444', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: '45vh', overflow: 'auto' }}>
               {selected.content || '（無內容）'}
