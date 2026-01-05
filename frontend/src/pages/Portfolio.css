@@ -739,17 +739,20 @@
     flex-shrink: 0;
   }
   
-  /* 配置建議按鈕 */
+ 
+/* 配置建議按鈕 */
   .btn-advisor {
-    padding: 10px 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #f7b733 0%, #db3d08 100%);
     color: white;
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 500;
     margin-right: 10px;
     transition: all 0.2s;
+    white-space: nowrap;
   }
   
   .btn-advisor:hover {

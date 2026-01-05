@@ -276,7 +276,7 @@ function Portfolio() {
         <h1>📈 投資組合</h1>
         <div className="header-buttons">
           <button className="btn-advisor" onClick={() => setShowAdvisor(true)}>
-            🎯 配置建議
+            🎯 測試風險屬性並取得專屬配置建議
           </button>
           <button className="btn-primary" onClick={() => setShowAddModal(true)}>
             + 新增持倉
