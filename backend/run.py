@@ -22,6 +22,7 @@ import sys
 from datetime import datetime, timedelta
 from decimal import Decimal
 from app.routes.technical_routes import technical_bp, init_technical_routes
+from app.routes.holiday_routes import holiday_bp
 # 設定 Python 路徑
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
@@ -153,6 +154,7 @@ def create_app():
      app.register_blueprint(knowledge_bp)
      app.register_blueprint(portfolio_bp)
      app.register_blueprint(technical_bp)
+     app.register_blueprint(holiday_bp)
     init_portfolio_routes(db)
 
     # 開發時你也可以先不啟動 scheduler，等 ingest 跑通再開

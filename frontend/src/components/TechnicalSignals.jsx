@@ -77,7 +77,7 @@ function TechnicalSignals({ holdings = [], onRefresh }) {
   if (loading) {
     return (
       <div className="card signals-card">
-        <h3>🎯 今日技術訊號</h3>
+        <h3>🎯 今日持倉股票訊號監測</h3>
         <div className="signals-loading">
           <div className="loading-spinner"></div>
           <span>分析中...</span>
@@ -89,7 +89,7 @@ function TechnicalSignals({ holdings = [], onRefresh }) {
   return (
     <div className="card signals-card">
       <div className="signals-header">
-        <h3>🎯 今日技術訊號</h3>
+        <h3>🎯 今日持倉股票訊號監測</h3>
         <button className="btn-refresh" onClick={loadSignals} title="重新分析">
           🔄
         </button>

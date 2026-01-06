@@ -599,7 +599,53 @@
   
   .sell-preview .profit { color: #27ae60; font-weight: bold; }
   .sell-preview .loss { color: #e74c3c; font-weight: bold; }
+/* 交割日提醒 */
+.settlement-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+    border: 1px solid #a5d6a7;
+    border-left: 4px solid #4caf50;
+    border-radius: 8px;
+    margin: 12px 0;
+  }
   
+  .settlement-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+  
+  .settlement-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .settlement-label {
+    font-size: 0.8rem;
+    color: #666;
+    font-weight: 500;
+  }
+  
+  .settlement-date {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #2e7d32;
+  }
+  
+  .settlement-skipped {
+    font-size: 0.75rem;
+    color: #ff9800;
+    margin-top: 2px;
+  }
+  
+  .settlement-hint {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 4px;
+  }
   /* 表單 */
   .form-group {
     margin-bottom: 16px;

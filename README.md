@@ -1,7 +1,7 @@
 # Personal Financial Management Platform
 # 個人財務管理平台 - 參考 Firefly III 開源架構設計
 
-![Version](https://img.shields.io/badge/version-1.4.0-blue)
+![Version](https://img.shields.io/badge/version-1.4.1-blue)
 ![Python](https://img.shields.io/badge/Python-3.13-green)
 ![React](https://img.shields.io/badge/React-18-blue)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
@@ -21,6 +21,7 @@
 | **財務目標** | 管理短期/中期儲蓄目標，含進度追蹤（落後/如期/超前判斷） |
 | **投資組合** | 股票/ETF 持倉管理、資產配置分析、即時報價 |
 | **技術指標監控** | KD 指標、MA 均線交叉訊號即時偵測與提醒 |
+| **交割日計算** | 自動計算 T+2 交割日，排除週末與休市日 |
 | **配置建議** | 風險問卷評估 + 智慧投資組合配置建議 |
 | **財經新聞** | 自動抓取財經新聞，AI 摘要整理 |
 | **理財學習** | 理財知識庫，智慧搜尋 |
@@ -40,6 +41,7 @@
 | 本月統計 | 本月投資支出、賣出收入、股息收入 |
 | 最近交易 | 顯示最近 5 筆投資交易記錄 |
 | 技術訊號 | 即時偵測 KD/MA 黃金交叉與死亡交叉 |
+| 交割日提醒 | 賣出時自動顯示 T+2 交割日期 |
 | 關注清單 | 追蹤感興趣的股票 |
 | 損益計算 | 自動計算未實現損益與報酬率 |
 | 配息記錄 | 追蹤股息收入與配息歷史 |
@@ -52,6 +54,39 @@
 | ETF | etf | 🔵 #3498db |
 | 債券 | bond | 🟢 #2ecc71 |
 | 基金 | fund | 🟠 #f39c12 |
+
+---
+
+## 交割日計算功能（v1.4.1 新增）
+
+### 功能特色
+
+| 功能 | 說明 |
+|------|------|
+| T+2 自動計算 | 根據賣出日期自動計算交割日 |
+| 休市日排除 | 自動跳過週末與國定假日 |
+| 證交所資料 | 從台灣證交所抓取官方休市日 |
+| 即時提醒 | 賣出 Modal 顯示交割日期與提醒 |
+| 快取機制 | 24 小時快取減少 API 請求 |
+
+### 交割日計算規則
+
+台股交割採用 **T+2** 制度：
+- **T 日**：成交日（賣出當天）
+- **T+1 日**：第一個營業日
+- **T+2 日**：交割日（需款項入帳）
+
+排除日期：
+- 週六、週日
+- 國定假日（元旦、春節、清明、端午、中秋、國慶等）
+- 證交所公告之休市日
+
+### 使用方式
+
+在賣出持倉時，選擇賣出日期後會自動顯示：
+- 交割日期（含星期幾）
+- 跳過的假日說明
+- 交割帳戶餘額提醒
 
 ---
 
@@ -221,6 +256,15 @@
 | GET | /api/technical/watchlist-signals | 取得關注清單技術訊號 |
 | GET | /api/technical/health | API 健康檢查 |
 
+### 休市日 & 交割日 API（v1.4.1 新增）
+
+| 方法 | 端點 | 說明 |
+|------|------|------|
+| GET | /api/holidays?year=2026 | 取得該年休市日清單 |
+| GET | /api/holidays/check?date=2026-01-01 | 檢查是否為休市日 |
+| GET | /api/settlement-date?sell_date=2026-01-06 | 計算 T+2 交割日 |
+| POST | /api/holidays/refresh | 強制更新休市日資料 |
+
 ### 風險評估 & 配置建議 API
 
 | 方法 | 端點 | 說明 |
@@ -305,7 +349,7 @@
 - **PostgreSQL 15** - 資料庫
 - **Flask-CORS** - 跨域支援
 - **twstock** - 台股即時報價與歷史資料
-- **requests** - HTTP 請求（Yahoo Finance API）
+- **requests** - HTTP 請求（Yahoo Finance API、證交所 API）
 - **APScheduler** - 排程任務
 
 ### 前端 (Frontend)
@@ -327,12 +371,14 @@ bookkeeping/
 │   │   │   └── knowledge_doc.py     # 知識文章模型
 │   │   ├── routes/         # API 路由
 │   │   │   ├── portfolio_routes.py  # 投資組合 API
-│   │   │   ├── technical_routes.py  # 技術指標 API（v1.4.0 新增）
+│   │   │   ├── technical_routes.py  # 技術指標 API
+│   │   │   ├── holiday_routes.py    # 休市日 & 交割日 API（v1.4.1 新增）
 │   │   │   ├── news_routes.py       # 新聞 API
 │   │   │   └── knowledge_routes.py  # 知識庫 API
 │   │   ├── services/       # 業務邏輯
 │   │   │   ├── stock_service.py     # 股票服務
-│   │   │   ├── technical_indicator_service.py  # 技術指標服務（v1.4.0 新增）
+│   │   │   ├── technical_indicator_service.py  # 技術指標服務
+│   │   │   ├── holiday_service.py   # 休市日服務（v1.4.1 新增）
 │   │   │   ├── portfolio_advisor.py # 配置建議服務
 │   │   │   ├── news_ingest_service.py    # 新聞抓取
 │   │   │   ├── news_summarize_service.py # 新聞摘要
@@ -352,15 +398,15 @@ bookkeeping/
 │   │   │   ├── RiskQuestionnaire.css
 │   │   │   ├── PortfolioAdvisor.jsx    # 配置建議組件
 │   │   │   ├── PortfolioAdvisor.css
-│   │   │   ├── TechnicalSignals.jsx    # 技術訊號組件（v1.4.0 新增）
-│   │   │   └── TechnicalSignals.css    # 技術訊號樣式（v1.4.0 新增）
+│   │   │   ├── TechnicalSignals.jsx    # 技術訊號組件
+│   │   │   └── TechnicalSignals.css    # 技術訊號樣式
 │   │   ├── pages/          # 頁面元件
 │   │   │   ├── Dashboard.jsx    # 財務總覽
 │   │   │   ├── Transactions.jsx # 交易記錄
 │   │   │   ├── Budgets.jsx      # 預算管理
 │   │   │   ├── Goals.jsx        # 財務目標
-│   │   │   ├── Portfolio.jsx    # 投資組合（v1.4.0 更新）
-│   │   │   ├── Portfolio.css    # 投資組合樣式（v1.4.0 更新）
+│   │   │   ├── Portfolio.jsx    # 投資組合（v1.4.1 更新）
+│   │   │   ├── Portfolio.css    # 投資組合樣式（v1.4.1 更新）
 │   │   │   ├── News.jsx         # 財經新聞
 │   │   │   └── Learn.jsx        # 理財學習
 │   │   ├── services/       # API 連接
@@ -457,12 +503,19 @@ PORT=5005
 - 總市值與未實現損益
 - 資產配置圓餅圖
 - 最近交易記錄
-- 今日技術訊號卡片
+- 今日持倉股票訊號監測卡片
 - 持倉明細（依資產類型分組）
 - 關注清單
 - 配置建議按鈕
 
-### 技術訊號卡片
+### 賣出持倉（v1.4.1 更新）
+- 賣出日期選擇
+- T+2 交割日自動計算
+- 跳過假日說明
+- 交割帳戶餘額提醒
+- 預估損益計算
+
+### 今日持倉股票訊號監測卡片
 - 買入/賣出訊號數量統計
 - KD 黃金交叉/死亡交叉提醒
 - MA 均線交叉提醒
@@ -491,14 +544,22 @@ PORT=5005
 
 ## 更新日誌
 
-### v1.4.0（最新）
+### v1.4.1
+- 新增交割日計算功能
+  - 賣出時自動計算 T+2 交割日
+  - 自動排除週末與國定假日
+  - 從台灣證交所抓取官方休市日資料
+  - 24 小時快取機制減少 API 請求
+  - 賣出 Modal 顯示交割日提醒
+
+### v1.4.0
 - 新增技術指標監控功能
   - KD 指標（9-3-3）自動計算與交叉偵測
   - MA 移動平均線（5日/20日）交叉偵測
   - 黃金交叉（買入訊號）與死亡交叉（賣出訊號）即時提醒
   - 訊號強度判斷（超買區/超賣區加權）
-- 新增技術訊號
-  - 投資組合頁面新增「今日技術訊號」
+- 新增技術訊號卡片
+  - 投資組合頁面新增「今日持倉股票訊號監測」
   - 顯示買入/賣出訊號統計
   - 支援展開查看所有訊號
   - 一鍵重新分析功能
@@ -536,6 +597,7 @@ PORT=5005
 - [Flask Documentation](https://flask.palletsprojects.com/)
 - [React Documentation](https://react.dev/)
 - [twstock](https://github.com/mlouielu/twstock) - 台灣股市資料擷取
+- [台灣證券交易所](https://www.twse.com.tw/) - 休市日資料來源
 
 ## 開發團隊
 
