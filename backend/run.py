@@ -147,6 +147,7 @@ def create_app():
     from app.routes import news_bp, knowledge_bp, portfolio_bp
     from app.routes.portfolio_routes import init_portfolio_routes
     from app.services.scheduler_service import init_scheduler
+    from app.routes.recommendation_routes import recommendation_bp
     init_technical_routes(db)
     
     def register_extra(app):
@@ -155,6 +156,7 @@ def create_app():
      app.register_blueprint(portfolio_bp)
      app.register_blueprint(technical_bp)
      app.register_blueprint(holiday_bp)
+     app.register_blueprint(recommendation_bp)
     init_portfolio_routes(db)
 
     # 開發時你也可以先不啟動 scheduler，等 ingest 跑通再開

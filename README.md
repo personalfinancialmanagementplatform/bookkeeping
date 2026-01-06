@@ -265,6 +265,17 @@
 | GET | /api/settlement-date?sell_date=2026-01-06 | 計算 T+2 交割日 |
 | POST | /api/holidays/refresh | 強制更新休市日資料 |
 
+### 推薦標的 API（v1.4.2 新增）
+
+| 方法 | 端點 | 說明 |
+|------|------|------|
+| GET | /api/recommendations | 取得所有推薦標的 |
+| GET | /api/recommendations/etf | 取得 ETF 清單 |
+| GET | /api/recommendations/stock | 取得股票清單 |
+| GET | /api/recommendations/by-risk?level= | 根據風險等級篩選 |
+| GET | /api/recommendations/by-goal?goal= | 根據投資目標篩選 |
+| GET | /api/recommendations/search?q= | 搜尋推薦標的 |
+
 ### 風險評估 & 配置建議 API
 
 | 方法 | 端點 | 說明 |
