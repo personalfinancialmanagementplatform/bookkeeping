@@ -977,3 +977,269 @@
   .allocation-item.is-custom {
     border-left: 3px solid #f59e0b;
   }
+  /* === 證券戶比較按鈕 === */
+.btn-broker-compare {
+    margin-top: 10px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-broker-compare:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+  
+  /* === 券商比較彈窗 === */
+  .broker-comparison-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+  }
+  
+  .broker-comparison-modal {
+    background: white;
+    border-radius: 16px;
+    max-width: 1100px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+  
+  .comparison-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #abcdf4 0%, #4170bb 100%);
+    color: white;
+  }
+  
+  .comparison-header h3 {
+    margin: 0;
+    font-size: 20px;
+  }
+  
+  .comparison-header .close-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  
+  .comparison-header .close-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  
+  .comparison-intro {
+    padding: 16px 24px;
+    background: #f0f9ff;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .comparison-intro p {
+    margin: 4px 0;
+    font-size: 14px;
+    color: #1e40af;
+  }
+  
+  /* === 比較表格 === */
+  .comparison-table-wrapper {
+    flex: 1;
+    overflow: auto;
+    padding: 16px 24px;
+  }
+  
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  
+  .comparison-table th {
+    background: #f8fafc;
+    padding: 12px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: #475569;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+  }
+  
+  .comparison-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+  }
+  
+  .comparison-table tbody tr:hover {
+    background: #f8fafc;
+  }
+  
+  .recommended-row {
+    background: linear-gradient(90deg, #fef9c3 0%, #fef3c7 100%) !important;
+  }
+  
+  .recommended-row:hover {
+    background: linear-gradient(90deg, #fef08a 0%, #fde68a 100%) !important;
+  }
+  
+  .broker-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  
+  .broker-logo {
+    font-size: 20px;
+  }
+  
+  .recommended-badge {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  
+  .fee-cell {
+    color: #059669;
+    font-weight: 600;
+  }
+  
+  .app-rating {
+    display: block;
+    font-weight: 600;
+    color: #f59e0b;
+  }
+  
+  .app-name {
+    display: block;
+    font-size: 11px;
+    color: #afbf53;
+    margin-top: 2px;
+  }
+  
+  .features-cell {
+    max-width: 180px;
+  }
+  
+  .feature-tag-small {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #3783ac;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin: 2px 2px 2px 0;
+  }
+  
+  .open-account-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  
+  .open-account-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  }
+  
+  /* === 比較說明 === */
+  .comparison-notes {
+    padding: 16px 24px;
+    background: #fffbeb;
+    border-top: 1px solid #fde68a;
+  }
+  
+  .comparison-notes h5 {
+    margin: 0 0 12px 0;
+    color: #92400e;
+    font-size: 14px;
+  }
+  
+  .comparison-notes ul {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+  }
+  
+  .comparison-notes li {
+    font-size: 13px;
+    color: #78350f;
+    margin: 6px 0;
+    line-height: 1.5;
+  }
+  
+  .comparison-footer {
+    padding: 16px 24px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: center;
+  }
+  
+  /* === 響應式設計 === */
+  @media (max-width: 768px) {
+    .broker-comparison-modal {
+      max-height: 95vh;
+      border-radius: 12px;
+    }
+    
+    .comparison-table-wrapper {
+      padding: 12px;
+    }
+    
+    .comparison-table {
+      font-size: 11px;
+    }
+    
+    .comparison-table th,
+    .comparison-table td {
+      padding: 8px 6px;
+    }
+    
+    .feature-tag-small {
+      font-size: 9px;
+      padding: 1px 4px;
+    }
+    
+    .open-account-btn {
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+  }
