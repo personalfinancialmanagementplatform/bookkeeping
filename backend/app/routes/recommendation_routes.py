@@ -1,5 +1,5 @@
 """
-推薦標的 API 路由
+推薦標的 API 路由 - 完整版
 """
 
 from flask import Blueprint, request, jsonify
@@ -9,17 +9,13 @@ recommendation_bp = Blueprint('recommendation', __name__)
 
 @recommendation_bp.route('/api/recommendations', methods=['GET'])
 def get_all_recommendations():
-    """取得所有推薦標的"""
+    """取得所有推薦標的（全部上市股票 & ETF）"""
     try:
         from app.services.recommendation_service import recommendation_service
         
-        recommendations = recommendation_service.get_all_recommendations()
-        stats = recommendation_service.get_statistics()
+        data = recommendation_service.get_all_from_twstock()
         
-        return jsonify({
-            'recommendations': recommendations,
-            'statistics': stats
-        })
+        return jsonify(data)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -27,16 +23,18 @@ def get_all_recommendations():
 
 @recommendation_bp.route('/api/recommendations/etf', methods=['GET'])
 def get_etf_list():
-    """取得 ETF 清單"""
+    """取得全部 ETF（可篩選分類）"""
     try:
         from app.services.recommendation_service import recommendation_service
         
         category = request.args.get('category')
-        etfs = recommendation_service.get_etf_list(category)
+        limit = request.args.get('limit', type=int, default=100)
+        
+        etfs = recommendation_service.get_all_etfs(category)
         
         return jsonify({
-            'etfs': etfs,
-            'count': len(etfs),
+            'etfs': etfs[:limit],
+            'total_count': len(etfs),
             'category': category
         })
         
@@ -46,17 +44,94 @@ def get_etf_list():
 
 @recommendation_bp.route('/api/recommendations/stock', methods=['GET'])
 def get_stock_list():
-    """取得股票清單"""
+    """取得全部股票（可篩選產業）"""
     try:
         from app.services.recommendation_service import recommendation_service
         
         category = request.args.get('category')
-        stocks = recommendation_service.get_stock_list(category)
+        sector = request.args.get('sector')
+        limit = request.args.get('limit', type=int, default=100)
+        
+        stocks = recommendation_service.get_all_stocks(category, sector)
         
         return jsonify({
-            'stocks': stocks,
-            'count': len(stocks),
-            'category': category
+            'stocks': stocks[:limit],
+            'total_count': len(stocks),
+            'category': category,
+            'sector': sector
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@recommendation_bp.route('/api/recommendations/etf/categories', methods=['GET'])
+def get_etf_categories():
+    """取得 ETF 分類統計"""
+    try:
+        from app.services.recommendation_service import recommendation_service
+        
+        categories = recommendation_service.get_etf_categories()
+        
+        # 分類名稱對照
+        category_names = {
+            'market_cap': '大盤型',
+            'high_dividend': '高股息',
+            'monthly_dividend': '月配息',
+            'bond': '債券型',
+            'us_bond': '美國公債',
+            'corporate_bond': '公司債',
+            'semiconductor': '半導體',
+            '5g_telecom': '5G通訊',
+            'ev': '電動車',
+            'ai': 'AI人工智慧',
+            'financial': '金融',
+            'esg': 'ESG永續',
+            'us_market': '美股',
+            'nasdaq': 'NASDAQ',
+            'japan': '日本',
+            'china': '中國',
+            'global': '全球',
+            'low_volatility': '低波動',
+            'growth': '成長型',
+            'other': '其他',
+        }
+        
+        result = []
+        for key, count in sorted(categories.items(), key=lambda x: -x[1]):
+            result.append({
+                'key': key,
+                'name': category_names.get(key, key),
+                'count': count
+            })
+        
+        return jsonify({
+            'categories': result,
+            'total_categories': len(result)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@recommendation_bp.route('/api/recommendations/stock/sectors', methods=['GET'])
+def get_stock_sectors():
+    """取得股票產業統計"""
+    try:
+        from app.services.recommendation_service import recommendation_service
+        
+        sectors = recommendation_service.get_stock_sectors()
+        
+        result = []
+        for sector, count in sorted(sectors.items(), key=lambda x: -x[1]):
+            result.append({
+                'sector': sector,
+                'count': count
+            })
+        
+        return jsonify({
+            'sectors': result,
+            'total_sectors': len(result)
         })
         
     except Exception as e:
@@ -72,12 +147,7 @@ def get_by_risk_level():
         risk_level = request.args.get('level', 'moderate')
         recommendations = recommendation_service.get_by_risk_level(risk_level)
         
-        return jsonify({
-            'risk_level': risk_level,
-            'recommendations': recommendations,
-            'etf_count': len(recommendations['etf']),
-            'stock_count': len(recommendations['stock'])
-        })
+        return jsonify(recommendations)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -92,12 +162,7 @@ def get_by_goal():
         goal = request.args.get('goal', 'growth')
         recommendations = recommendation_service.get_by_goal(goal)
         
-        return jsonify({
-            'goal': goal,
-            'recommendations': recommendations,
-            'etf_count': len(recommendations['etf']),
-            'stock_count': len(recommendations['stock'])
-        })
+        return jsonify(recommendations)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -105,15 +170,17 @@ def get_by_goal():
 
 @recommendation_bp.route('/api/recommendations/search', methods=['GET'])
 def search_recommendations():
-    """搜尋推薦標的"""
+    """搜尋全部標的"""
     try:
         from app.services.recommendation_service import recommendation_service
         
         keyword = request.args.get('q', '')
+        limit = request.args.get('limit', type=int, default=50)
+        
         if len(keyword) < 1:
             return jsonify({'error': '請輸入搜尋關鍵字'}), 400
         
-        results = recommendation_service.search(keyword)
+        results = recommendation_service.search(keyword, limit)
         
         return jsonify({
             'keyword': keyword,
@@ -125,9 +192,23 @@ def search_recommendations():
         return jsonify({'error': str(e)}), 500
 
 
+@recommendation_bp.route('/api/recommendations/popular', methods=['GET'])
+def get_popular():
+    """取得熱門/精選標的"""
+    try:
+        from app.services.recommendation_service import recommendation_service
+        
+        popular = recommendation_service.get_popular()
+        
+        return jsonify(popular)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @recommendation_bp.route('/api/recommendations/statistics', methods=['GET'])
 def get_statistics():
-    """取得推薦標的統計"""
+    """取得完整統計"""
     try:
         from app.services.recommendation_service import recommendation_service
         
@@ -137,24 +218,3 @@ def get_statistics():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-
-@recommendation_bp.route('/api/recommendations/categories', methods=['GET'])
-def get_categories():
-    """取得所有分類"""
-    return jsonify({
-        'etf_categories': [
-            {'key': 'market_cap', 'name': '大盤型', 'description': '追蹤大盤指數，分散投資'},
-            {'key': 'high_dividend', 'name': '高股息', 'description': '追求穩定股息收入'},
-            {'key': 'monthly_dividend', 'name': '月配息', 'description': '每月配息，現金流穩定'},
-            {'key': 'bond', 'name': '債券型', 'description': '固定收益，風險較低'},
-            {'key': 'sector', 'name': '產業型', 'description': '聚焦特定產業'},
-            {'key': 'global', 'name': '海外型', 'description': '投資海外市場'},
-        ],
-        'stock_categories': [
-            {'key': 'growth', 'name': '成長型', 'description': '高成長潛力股'},
-            {'key': 'stable', 'name': '穩健型', 'description': '穩定獲利的藍籌股'},
-            {'key': 'defensive', 'name': '防禦型', 'description': '景氣循環影響小'},
-            {'key': 'high_dividend', 'name': '高股息', 'description': '高現金股利配發'},
-        ]
-    })
