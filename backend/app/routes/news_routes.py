@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from flask import Blueprint, request, jsonify, current_app
 
 from app.database import db
@@ -36,22 +37,31 @@ def ingest_news():
     })
 
 @news_bp.route("/today", methods=["GET"])
-def get_today_news():
-    limit = int(request.args.get("limit", 10))
+def get_today_or_latest_news():
+    limit = int(request.args.get("limit", 20))
 
-    # UTC aware 的今天 00:00
-    start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    today = datetime.utcnow().date()
 
-    articles = (
+    items = (
         NewsArticle.query
         .filter(NewsArticle.published_at.isnot(None))
-        .filter(NewsArticle.published_at >= start)
+        .filter(db.func.date(NewsArticle.published_at) == today)
         .order_by(NewsArticle.published_at.desc())
         .limit(limit)
         .all()
     )
 
-    return jsonify([a.to_dict() for a in articles])
+    if not items:
+        # fallback：最新新聞
+        items = (
+            NewsArticle.query
+            .filter(NewsArticle.published_at.isnot(None))
+            .order_by(NewsArticle.published_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+    return jsonify([a.to_dict() for a in items])
 
 @news_bp.route("/query", methods=["GET"])
 def query_news():
