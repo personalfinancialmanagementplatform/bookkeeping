@@ -1,10 +1,9 @@
 /**
  * 投資組合配置建議組件
- * 功能：風險問卷評估、配置建議、標的介紹、下單指引
- * 更新：加入自訂投資標的功能
+ * 功能：風險問卷評估、配置建議、標的介紹、下單指引、券商比較
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import RiskQuestionnaire from './RiskQuestionnaire';
 import './PortfolioAdvisor.css';
 
@@ -134,6 +133,13 @@ const ASSET_DETAILS = {
     riskLevel: 'RR3',
     minInvestment: '1股約45-55元'
   },
+  '2886': {
+    fullName: '兆豐金融控股股份有限公司',
+    description: '官股金控代表，經營穩健，配息穩定，適合保守型投資人。',
+    features: ['官股金控', '穩定配息', '經營穩健', '防禦性佳'],
+    riskLevel: 'RR3',
+    minInvestment: '1股約40-45元'
+  },
   '1216': {
     fullName: '統一企業股份有限公司',
     description: '台灣食品業龍頭，旗下有7-11、統一超商等，民生消費股代表。',
@@ -151,38 +157,120 @@ const ASSET_DETAILS = {
   }
 };
 
-// 券商下單資訊
-const BROKER_INFO = [
+// 券商比較資料
+const BROKER_COMPARISON = [
   {
     name: '元大證券',
-    url: 'https://www.yuanta.com.tw/',
+    logo: '🏦',
+    discount: '電子下單 6 折',
+    effectiveFee: '0.0855%',
+    minFee: '20 元',
+    fractionalShare: '✅ 有',
+    regularInvest: '✅ 有',
     app: '投資先生',
-    features: ['市佔率第一', '研究報告完整', '手續費優惠多']
+    appRating: '4.5',
+    features: ['市佔率第一', '研究報告完整', '據點最多'],
+    openAccountUrl: 'https://www.yuanta.com.tw/',
+    recommended: true
   },
   {
     name: '富邦證券',
-    url: 'https://www.fubon-ebroker.com/',
+    logo: '🏛️',
+    discount: '電子下單 6 折',
+    effectiveFee: '0.0855%',
+    minFee: '20 元',
+    fractionalShare: '✅ 有',
+    regularInvest: '✅ 有',
     app: '富邦e點通',
-    features: ['富邦金控旗下', '介面友善', '定期定額方便']
+    appRating: '4.3',
+    features: ['富邦金控整合', '介面友善', 'LINE 綁定'],
+    openAccountUrl: 'https://www.fubon-ebroker.com/',
+    recommended: false
   },
   {
     name: '國泰證券',
-    url: 'https://www.cathaybk.com.tw/securities/',
-    app: '國泰證券',
-    features: ['樹精靈智能選股', 'CUBE App整合', '小資族友善']
+    logo: '🌳',
+    discount: '電子下單 6 折起',
+    effectiveFee: '0.0855%',
+    minFee: '20 元',
+    fractionalShare: '✅ 有',
+    regularInvest: '✅ 有',
+    app: 'CUBE App',
+    appRating: '4.4',
+    features: ['樹精靈智能選股', 'CUBE整合', '小資族友善'],
+    openAccountUrl: 'https://www.cathaysec.com.tw/',
+    recommended: false
   },
   {
     name: '永豐金證券',
-    url: 'https://www.sinotrade.com.tw/',
+    logo: '💎',
+    discount: '電子下單 65 折',
+    effectiveFee: '0.0926%',
+    minFee: '20 元',
+    fractionalShare: '✅ 有',
+    regularInvest: '✅ 豐存股',
     app: '大戶投',
-    features: ['介面現代化', '豐存股功能', '手續費低']
+    appRating: '4.6',
+    features: ['介面現代化', '豐存股功能強', '手續費低'],
+    openAccountUrl: 'https://www.sinotrade.com.tw/',
+    recommended: true
   },
   {
     name: '玉山證券',
-    url: 'https://www.esunsec.com.tw/',
-    app: '玉山證券',
-    features: ['富果帳戶', '新手友善', '定期定額']
-  }
+    logo: '🗻',
+    discount: '電子下單 6 折',
+    effectiveFee: '0.0855%',
+    minFee: '20 元',
+    fractionalShare: '✅ 有（富果）',
+    regularInvest: '✅ 有',
+    app: '玉山證券 / 富果',
+    appRating: '4.5',
+    features: ['富果帳戶', '新手友善', '介面美觀'],
+    openAccountUrl: 'https://www.fugle.tw/',
+    recommended: true
+  },
+  {
+    name: '中國信託證券',
+    logo: '🔵',
+    discount: '電子下單 6 折',
+    effectiveFee: '0.0855%',
+    minFee: '20 元',
+    fractionalShare: '✅ 有',
+    regularInvest: '✅ 有',
+    app: '亮點App',
+    appRating: '4.2',
+    features: ['中信金整合', '信用卡優惠', '據點多'],
+    openAccountUrl: 'https://www.win168.com.tw/',
+    recommended: false
+  },
+  {
+    name: '凱基證券',
+    logo: '🟢',
+    discount: '電子下單 6 折',
+    effectiveFee: '0.0855%',
+    minFee: '20 元',
+    fractionalShare: '✅ 有',
+    regularInvest: '✅ 定期定股',
+    app: '隨身營業員',
+    appRating: '4.1',
+    features: ['定期定股', '研究資源豐富', '法人服務'],
+    openAccountUrl: 'https://www.kgieworld.com.tw/',
+    recommended: false
+  },
+  {
+    name: '新光證券',
+    logo: '🟡',
+    discount: '電子下單 28 折',
+    effectiveFee: '0.0399%',
+    minFee: '20 元',
+    fractionalShare: '❌ 無',
+    regularInvest: '✅ 有',
+    app: '新光證券',
+    appRating: '3.8',
+    features: ['手續費超低', '新戶優惠多', '適合大戶'],
+    openAccountUrl: 'https://www.skis.com.tw/',
+    recommended: false
+  },
 ];
 
 // 熱門標的快速選擇（用於自訂標的）
@@ -213,9 +301,9 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expandedAsset, setExpandedAsset] = useState(null);
-  const [showBrokerInfo, setShowBrokerInfo] = useState(false);
+  const [showBrokerComparison, setShowBrokerComparison] = useState(false);
   
-  // 新增：自訂投資標的相關狀態
+  // 自訂投資標的相關狀態
   const [customAssets, setCustomAssets] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -266,7 +354,7 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
         setSearchResults(data.slice(0, 8));
         setShowSearchDropdown(true);
       }
-    } catch (err) {
+    } catch {
       setSearchResults(localResults);
       setShowSearchDropdown(localResults.length > 0);
     }
@@ -747,6 +835,12 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
               <div className="step-content">
                 <h5>開立證券戶</h5>
                 <p>如果您還沒有證券帳戶，請先到券商開戶。建議選擇有定期定額功能的券商。</p>
+                <button 
+                  className="btn-broker-compare"
+                  onClick={() => setShowBrokerComparison(true)}
+                >
+                  📊 證券戶比較
+                </button>
               </div>
             </div>
             <div className="guide-step">
@@ -771,38 +865,97 @@ const PortfolioAdvisor = ({ existingHoldings = [], onApply, onClose }) => {
               </div>
             </div>
           </div>
-
-          {/* 券商資訊 */}
-          <div className="broker-section">
-            <button 
-              className="broker-toggle"
-              onClick={() => setShowBrokerInfo(!showBrokerInfo)}
-            >
-              🏦 {showBrokerInfo ? '收起' : '查看'}推薦券商資訊
-            </button>
-
-            {showBrokerInfo && (
-              <div className="broker-list">
-                {BROKER_INFO.map((broker, index) => (
-                  <div key={index} className="broker-card">
-                    <div className="broker-header">
-                      <h5>{broker.name}</h5>
-                      <a href={broker.url} target="_blank" rel="noopener noreferrer" className="broker-link">
-                        前往官網 →
-                      </a>
-                    </div>
-                    <p className="broker-app">📱 App：{broker.app}</p>
-                    <div className="broker-features">
-                      {broker.features.map((f, i) => (
-                        <span key={i} className="broker-feature">{f}</span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
+
+        {/* 券商比較彈窗 */}
+        {showBrokerComparison && (
+          <div className="broker-comparison-overlay" onClick={() => setShowBrokerComparison(false)}>
+            <div className="broker-comparison-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="comparison-header">
+                <h3>📊 證券商開戶比較</h3>
+                <button className="close-btn" onClick={() => setShowBrokerComparison(false)}>×</button>
+              </div>
+              
+              <div className="comparison-intro">
+                <p>📌 台股手續費公定價為成交金額的 <strong>0.1425%</strong>，各券商提供不同電子下單折扣。</p>
+                <p>📌 建議選擇有「定期定額」及「零股交易」功能的券商，方便小額投資。</p>
+              </div>
+
+              <div className="comparison-table-wrapper">
+                <table className="comparison-table">
+                  <thead>
+                    <tr>
+                      <th>券商</th>
+                      <th>電子下單折扣</th>
+                      <th>實際手續費率</th>
+                      <th>最低手續費</th>
+                      <th>零股交易</th>
+                      <th>定期定額</th>
+                      <th>App 評分</th>
+                      <th>特色</th>
+                      <th>開戶</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {BROKER_COMPARISON.map((broker, index) => (
+                      <tr key={index} className={broker.recommended ? 'recommended-row' : ''}>
+                        <td className="broker-name-cell">
+                          <span className="broker-logo">{broker.logo}</span>
+                          <span>{broker.name}</span>
+                          {broker.recommended && <span className="recommended-badge">推薦</span>}
+                        </td>
+                        <td>{broker.discount}</td>
+                        <td className="fee-cell">{broker.effectiveFee}</td>
+                        <td>{broker.minFee}</td>
+                        <td>{broker.fractionalShare}</td>
+                        <td>{broker.regularInvest}</td>
+                        <td>
+                          <span className="app-rating">⭐ {broker.appRating}</span>
+                          <span className="app-name">{broker.app}</span>
+                        </td>
+                        <td className="features-cell">
+                          {broker.features.map((f, i) => (
+                            <span key={i} className="feature-tag-small">{f}</span>
+                          ))}
+                        </td>
+                        <td>
+                          <a 
+                            href={broker.openAccountUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="open-account-btn"
+                          >
+                            前往開戶
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="comparison-notes">
+                <h5>💡 開戶小提醒</h5>
+                <ul>
+                  <li>📋 開戶需準備：雙證件（身分證 + 健保卡或駕照）、印章、銀行帳戶</li>
+                  <li>🏦 交割帳戶：部分券商可同時開立銀行帳戶，無需另外準備</li>
+                  <li>📱 線上開戶：多數券商支援全線上開戶，約 10-15 分鐘完成</li>
+                  <li>⏰ 審核時間：約 1-3 個工作天</li>
+                  <li>🎁 新戶優惠：開戶前可查詢各券商新戶禮（手續費折扣、禮券等）</li>
+                </ul>
+              </div>
+
+              <div className="comparison-footer">
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => setShowBrokerComparison(false)}
+                >
+                  關閉
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 警示訊息 */}
         {recommendation.warnings?.length > 0 && (

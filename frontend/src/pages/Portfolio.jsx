@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import PortfolioAdvisor from '../components/PortfolioAdvisor';
+import TechnicalSignals from '../components/TechnicalSignals';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import './Portfolio.css';
 
@@ -44,7 +45,8 @@ function Portfolio() {
   const [sellData, setSellData] = useState({
     quantity: '',
     price: '',
-    transaction_date: new Date().toISOString().split('T')[0]
+    transaction_date: new Date().toISOString().split('T')[0],
+    settlement_info: null
   });
 
   const [dividendData, setDividendData] = useState({
@@ -151,12 +153,16 @@ function Portfolio() {
       const res = await fetch(`${API_BASE}/holdings/${selectedHolding.id}/sell`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(sellData)
+        body: JSON.stringify({
+          quantity: sellData.quantity,
+          price: sellData.price,
+          transaction_date: sellData.transaction_date
+        })
       });
       
       if (res.ok) {
         setShowSellModal(false);
-        setSellData({ quantity: '', price: '', transaction_date: new Date().toISOString().split('T')[0] });
+        setSellData({ quantity: '', price: '', transaction_date: new Date().toISOString().split('T')[0], settlement_info: null });
         setSelectedHolding(null);
         loadData();
       } else {
@@ -193,12 +199,24 @@ function Portfolio() {
     }
   };
 
-  const openSellModal = (holding) => {
+  const openSellModal = async (holding) => {
     setSelectedHolding(holding);
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 預先計算今天的交割日
+    let settlementInfo = null;
+    try {
+      const res = await fetch(`${API_BASE}/settlement-date?sell_date=${today}`);
+      settlementInfo = await res.json();
+    } catch (err) {
+      console.error('計算交割日失敗:', err);
+    }
+    
     setSellData({ 
       quantity: '', 
       price: holding.current_price || '', 
-      transaction_date: new Date().toISOString().split('T')[0] 
+      transaction_date: today,
+      settlement_info: settlementInfo
     });
     setShowSellModal(true);
   };
@@ -275,7 +293,7 @@ function Portfolio() {
         <h1>📈 投資組合</h1>
         <div className="header-buttons">
           <button className="btn-advisor" onClick={() => setShowAdvisor(true)}>
-            🎯 配置建議
+            🎯 測試風險屬性並取得專屬配置建議
           </button>
           <button className="btn-primary" onClick={() => setShowAddModal(true)}>
             + 新增持倉
@@ -318,8 +336,8 @@ function Portfolio() {
         </div>
       </div>
 
-      {/* 本月統計 + 資產配置 + 最近交易 */}
-      <div className="middle-section">
+      {/* 本月統計 + 資產配置 + 最近交易 + 技術訊號 */}
+      <div className="middle-section middle-section-4col">
         <div className="card monthly-card">
           <h3>📅 本月投資</h3>
           <div className="monthly-grid">
@@ -387,6 +405,9 @@ function Portfolio() {
             <div className="empty-chart">尚無交易記錄</div>
           )}
         </div>
+
+        {/* 技術訊號卡片 */}
+        <TechnicalSignals holdings={holdings} onRefresh={loadData} />
       </div>
 
       {/* 頁籤 */}
@@ -598,18 +619,70 @@ function Portfolio() {
             <form onSubmit={handleSell}>
               <div className="form-group">
                 <label>賣出日期</label>
-                <input type="date" value={sellData.transaction_date} onChange={(e) => setSellData({...sellData, transaction_date: e.target.value})} required />
+                <input 
+                  type="date" 
+                  value={sellData.transaction_date} 
+                  onChange={(e) => {
+                    setSellData({...sellData, transaction_date: e.target.value});
+                    // 呼叫 API 計算交割日
+                    if (e.target.value) {
+                      fetch(`${API_BASE}/settlement-date?sell_date=${e.target.value}`)
+                        .then(res => res.json())
+                        .then(data => {
+                          setSellData(prev => ({
+                            ...prev, 
+                            settlement_info: data
+                          }));
+                        })
+                        .catch(err => console.error('計算交割日失敗:', err));
+                    }
+                  }} 
+                  required 
+                />
               </div>
+
+              {/* 交割日提醒 */}
+              {sellData.settlement_info && (
+                <div className="settlement-notice">
+                  <div className="settlement-icon">🏦</div>
+                  <div className="settlement-content">
+                    <span className="settlement-label">交割日（T+2 營業日）</span>
+                    <span className="settlement-date">
+                      {sellData.settlement_info.settlement_date_formatted} {sellData.settlement_info.settlement_weekday}
+                    </span>
+                    {sellData.settlement_info.skipped_days?.length > 0 && (
+                      <span className="settlement-skipped">
+                        ⏭️ 跳過：{sellData.settlement_info.skipped_days.map(d => d.reason).join('、')}
+                      </span>
+                    )}
+                    <span className="settlement-hint">💡 請確保交割帳戶於此日有足夠款項</span>
+                  </div>
+                </div>
+              )}
+
               <div className="form-row">
                 <div className="form-group">
                   <label>賣出數量（股）</label>
-                  <input type="number" max={selectedHolding.quantity} value={sellData.quantity} onChange={(e) => setSellData({...sellData, quantity: e.target.value})} required />
+                  <input 
+                    type="number" 
+                    max={selectedHolding.quantity} 
+                    value={sellData.quantity} 
+                    onChange={(e) => setSellData({...sellData, quantity: e.target.value})} 
+                    required 
+                  />
                 </div>
                 <div className="form-group">
                   <label>賣出價格</label>
-                  <input type="number" step="0.01" value={sellData.price} onChange={(e) => setSellData({...sellData, price: e.target.value})} required />
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    value={sellData.price} 
+                    onChange={(e) => setSellData({...sellData, price: e.target.value})} 
+                    required 
+                  />
                 </div>
               </div>
+
               {sellData.quantity && sellData.price && (
                 <div className="sell-preview">
                   <p>賣出金額：NT$ {(sellData.quantity * sellData.price).toLocaleString()}</p>
@@ -619,6 +692,7 @@ function Portfolio() {
                   </p>
                 </div>
               )}
+
               <div className="form-actions">
                 <button type="button" className="btn-cancel" onClick={() => setShowSellModal(false)}>取消</button>
                 <button type="submit" className="btn-sell-confirm">確認賣出</button>

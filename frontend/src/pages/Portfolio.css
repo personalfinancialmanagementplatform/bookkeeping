@@ -599,7 +599,53 @@
   
   .sell-preview .profit { color: #27ae60; font-weight: bold; }
   .sell-preview .loss { color: #e74c3c; font-weight: bold; }
+/* 交割日提醒 */
+.settlement-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+    border: 1px solid #a5d6a7;
+    border-left: 4px solid #4caf50;
+    border-radius: 8px;
+    margin: 12px 0;
+  }
   
+  .settlement-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+  
+  .settlement-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .settlement-label {
+    font-size: 0.8rem;
+    color: #666;
+    font-weight: 500;
+  }
+  
+  .settlement-date {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #2e7d32;
+  }
+  
+  .settlement-skipped {
+    font-size: 0.75rem;
+    color: #ff9800;
+    margin-top: 2px;
+  }
+  
+  .settlement-hint {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 4px;
+  }
   /* 表單 */
   .form-group {
     margin-bottom: 16px;
@@ -705,4 +751,68 @@
     align-items: center;
     height: 200px;
     color: #666;
+  }
+  /* ============================================
+   四欄佈局（技術訊號卡片）
+   ============================================ */
+
+.middle-section-4col {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  
+  @media (max-width: 1400px) {
+    .middle-section-4col {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  @media (max-width: 800px) {
+    .middle-section-4col {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .middle-section-4col .card {
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .middle-section-4col .card h3 {
+    flex-shrink: 0;
+  }
+  
+ 
+/* 配置建議按鈕 */
+  .btn-advisor {
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #f7b733 0%, #db3d08 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-right: 10px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  
+  .btn-advisor:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+  
+  .header-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .modal-large {
+    max-width: 900px;
+    width: 95%;
+    max-height: 90vh;
   }

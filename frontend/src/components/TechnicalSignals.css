@@ -1,0 +1,358 @@
+.signals-card {
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .signals-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  
+  .signals-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #2c3e50;
+  }
+  
+  .btn-refresh {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  
+  .btn-refresh:hover {
+    background: #f0f0f0;
+    transform: rotate(180deg);
+  }
+  
+  .signals-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: #666;
+    gap: 12px;
+  }
+  
+  .loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #e0e0e0;
+    border-top-color: #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  .signals-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 30px 20px;
+    background: #fff5f5;
+    border-radius: 8px;
+    color: #e74c3c;
+  }
+  
+  .signals-error button {
+    padding: 6px 16px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  .signals-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 20px;
+    text-align: center;
+    color: #666;
+    flex: 1;
+  }
+  
+  .signals-empty .empty-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+  
+  .signals-empty p {
+    margin: 0 0 4px 0;
+    font-size: 0.95rem;
+  }
+  
+  .signals-empty small {
+    color: #999;
+    font-size: 0.8rem;
+  }
+  
+  .signals-summary {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  
+  .summary-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 8px;
+  }
+  
+  .summary-item .count {
+    font-size: 1.3rem;
+    font-weight: bold;
+  }
+  
+  .summary-item .label {
+    font-size: 0.7rem;
+    color: #666;
+    margin-top: 2px;
+  }
+  
+  .summary-item.buy .count { color: #27ae60; }
+  .summary-item.sell .count { color: #e74c3c; }
+  .summary-item.total .count { color: #3498db; }
+  
+  .signals-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1;
+  }
+  
+  .signal-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border-left: 4px solid #ccc;
+    transition: all 0.2s;
+  }
+  
+  .signal-item:hover {
+    background: #f0f4f8;
+    transform: translateX(2px);
+  }
+  
+  .signal-item:last-child {
+    margin-bottom: 0;
+  }
+  
+  .signal-item.buy {
+    border-left-color: #27ae60;
+    background: linear-gradient(to right, #e8f8f0, #f8f9fa);
+  }
+  
+  .signal-item.sell {
+    border-left-color: #e74c3c;
+    background: linear-gradient(to right, #fef5f5, #f8f9fa);
+  }
+  
+  .signal-item.neutral {
+    border-left-color: #f39c12;
+  }
+  
+  .signal-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .signal-icon {
+    font-size: 1.3rem;
+  }
+  
+  .signal-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .signal-stock {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  
+  .signal-stock strong {
+    font-size: 0.95rem;
+    color: #2c3e50;
+  }
+  
+  .signal-stock .stock-name {
+    font-size: 0.75rem;
+    color: #666;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .signal-tags {
+    display: flex;
+    gap: 4px;
+  }
+  
+  .indicator-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+  }
+  
+  .badge-kd {
+    background: #e8f4fd;
+    color: #2980b9;
+  }
+  
+  .badge-ma {
+    background: #fef9e7;
+    color: #d68910;
+  }
+  
+  .badge-other {
+    background: #f0f0f0;
+    color: #666;
+  }
+  
+  .strength-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 500;
+  }
+  
+  .strength-badge.strong {
+    background: #ffebee;
+    color: #c0392b;
+  }
+  
+  .strength-badge.normal {
+    background: #f5f5f5;
+    color: #666;
+  }
+  
+  .strength-badge.weak {
+    background: #f0f0f0;
+    color: #999;
+  }
+  
+  .signal-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  
+  .recommendation {
+    font-size: 0.85rem;
+    font-weight: bold;
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+  
+  .recommendation.buy {
+    background: #27ae60;
+    color: white;
+  }
+  
+  .recommendation.sell {
+    background: #e74c3c;
+    color: white;
+  }
+  
+  .recommendation.neutral {
+    background: #95a5a6;
+    color: white;
+  }
+  
+  .signal-desc {
+    font-size: 0.7rem;
+    color: #888;
+  }
+  
+  .btn-expand {
+    width: 100%;
+    padding: 8px;
+    margin-top: 8px;
+    background: transparent;
+    border: 1px dashed #ddd;
+    border-radius: 8px;
+    color: #666;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .btn-expand:hover {
+    background: #f8f9fa;
+    border-color: #3498db;
+    color: #3498db;
+  }
+  
+  .signals-footer {
+    text-align: center;
+    margin-top: 8px;
+    color: #999;
+  }
+  
+  .signals-footer small {
+    font-size: 0.75rem;
+  }
+  
+  .signals-legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: #888;
+  }
+  
+  .legend-icon {
+    font-size: 0.9rem;
+  }
+  
+  @media (max-width: 500px) {
+    .signal-stock .stock-name {
+      display: none;
+    }
+    
+    .signals-summary {
+      flex-wrap: wrap;
+    }
+    
+    .summary-item {
+      flex: 1 1 30%;
+    }
+  }
